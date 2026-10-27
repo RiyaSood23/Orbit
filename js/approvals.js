@@ -4,6 +4,10 @@ const commentForm = document.querySelector("#comment-form");
 const commentInput = document.querySelector("#comment-input");
 const conversation = document.querySelector("#conversation");
 const commentCount = document.querySelector("#comment-count");
+const changesDialog = document.querySelector("#changes-dialog");
+const rejectDialog = document.querySelector("#reject-dialog");
+const changesForm = document.querySelector("#changes-form");
+const rejectForm = document.querySelector("#reject-form");
 
 function updateStatus(status, className, activityText) {
   statusElement.textContent = status;
@@ -17,18 +21,39 @@ function updateStatus(status, className, activityText) {
   activityList.prepend(activity);
 }
 
+function addFeedbackMessage(text) {
+  const message = document.createElement("article");
+  message.className = "message";
+  message.innerHTML = `
+    <span class="avatar avatar-blue">RS</span>
+    <div><div class="message-meta"><strong>Riya Sood</strong><time>Just now</time></div><p></p></div>
+  `;
+  message.querySelector("p").textContent = text;
+  conversation.append(message);
+  commentCount.textContent = `${conversation.children.length} messages`;
+}
+
+function openReviewDialog(dialog) {
+  dialog.showModal();
+  dialog.querySelector("textarea").focus();
+}
+
+function closeReviewDialog(dialog) {
+  dialog.close();
+  dialog.querySelector("form").reset();
+  dialog.querySelector(".dialog-error").textContent = "";
+}
+
 document.querySelector("#approve-button").addEventListener("click", () => {
   updateStatus("Approved", "status-approved", "Task was approved");
 });
 
 document.querySelector("#changes-button").addEventListener("click", () => {
-  updateStatus("Changes requested", "status-changes", "Changes were requested");
-  commentInput.focus();
-  commentInput.placeholder = "Explain what should be changed...";
+  openReviewDialog(changesDialog);
 });
 
 document.querySelector("#reject-button").addEventListener("click", () => {
-  updateStatus("Rejected", "status-rejected", "Task was rejected");
+  openReviewDialog(rejectDialog);
 });
 
 document.querySelector("#submission-link").addEventListener("click", (event) => {
@@ -43,14 +68,51 @@ commentForm.addEventListener("submit", (event) => {
     return;
   }
 
-  const message = document.createElement("article");
-  message.className = "message";
-  message.innerHTML = `
-    <span class="avatar avatar-blue">RS</span>
-    <div><div class="message-meta"><strong>Riya Sood</strong><time>Just now</time></div><p></p></div>
-  `;
-  message.querySelector("p").textContent = text;
-  conversation.append(message);
+  addFeedbackMessage(text);
   commentInput.value = "";
-  commentCount.textContent = `${conversation.children.length} messages`;
+});
+
+changesForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const feedback = document.querySelector("#changes-feedback").value.trim();
+  if (!feedback) {
+    document.querySelector("#changes-error").textContent = "Please describe the changes required.";
+    return;
+  }
+
+  updateStatus("Changes requested", "status-changes", "Changes were requested");
+  addFeedbackMessage(`Changes requested: ${feedback}`);
+  closeReviewDialog(changesDialog);
+});
+
+rejectForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const feedback = document.querySelector("#reject-feedback").value.trim();
+  if (!feedback) {
+    document.querySelector("#reject-error").textContent = "Please provide a reason for rejecting this task.";
+    return;
+  }
+
+  updateStatus("Rejected", "status-rejected", "Task was rejected");
+  addFeedbackMessage(`Task rejected: ${feedback}`);
+  closeReviewDialog(rejectDialog);
+});
+
+document.querySelectorAll("[data-close-dialog], .dialog-close").forEach((button) => {
+  button.addEventListener("click", () => {
+    closeReviewDialog(button.closest("dialog"));
+  });
+});
+
+document.querySelectorAll(".review-dialog").forEach((dialog) => {
+  dialog.addEventListener("cancel", () => {
+    dialog.querySelector("form").reset();
+    dialog.querySelector(".dialog-error").textContent = "";
+  });
+
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) {
+      closeReviewDialog(dialog);
+    }
+  });
 });
