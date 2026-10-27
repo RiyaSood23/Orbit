@@ -32,7 +32,7 @@ function addFeedbackMessage(text) {
   message.className = "message";
   message.innerHTML = `
     <span class="avatar avatar-blue">V</span>
-    <div><div class="message-meta"><strong>Vanshita</strong><time>Just now</time></div><p></p></div>
+    <div><div class="message-meta"><strong>Vaibhavi</strong><time>Just now</time></div><p></p></div>
   `;
   message.querySelector("p").textContent = text;
   conversation.append(message);
@@ -127,7 +127,7 @@ leadReviewForm.addEventListener("submit", (event) => {
 
   addFeedbackMessage(`Review request sent to Riya: ${feedback}`);
   const activity = document.createElement("li");
-  activity.innerHTML = `<span class="timeline-dot dot-purple"></span><div><strong>Vanshita asked Riya to review the entire task</strong><time>Just now</time><p></p></div>`;
+  activity.innerHTML = `<span class="timeline-dot dot-purple"></span><div><strong>Vaibhavi asked Riya to review the entire task</strong><time>Just now</time><p></p></div>`;
   activity.querySelector("p").textContent = feedback;
   activityList.prepend(activity);
   closeReviewDialog(leadReviewDialog);
