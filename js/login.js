@@ -74,11 +74,23 @@ async function postJson(url, payload) {
     credentials: "same-origin",
     body: JSON.stringify(payload),
   });
-  const result = await response.json();
+  const result = await readJsonResponse(response);
   if (!response.ok) {
     throw new Error(result.error || "The request could not be completed.");
   }
   return result;
+}
+
+async function readJsonResponse(response) {
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    throw new Error("Orbit’s local server is not running the authentication API. Restart it with `npm start`.");
+  }
+  try {
+    return await response.json();
+  } catch {
+    throw new Error("The authentication server returned an invalid response. Please restart the local server.");
+  }
 }
 
 async function submitForm(button, action) {
@@ -86,7 +98,7 @@ async function submitForm(button, action) {
   showFeedback("");
   try {
     await action();
-    window.location.assign("create-task.html");
+    window.location.assign("dashboard.html");
   } catch (error) {
     showFeedback(error instanceof Error ? error.message : "The request could not be completed.");
   } finally {
@@ -157,12 +169,12 @@ signupForm.addEventListener("submit", (event) => {
 
 fetch("/api/auth/session", { credentials: "same-origin" })
   .then(async (response) => {
-    const result = await response.json();
+    const result = await readJsonResponse(response);
     if (!response.ok) {
       throw new Error(result.error || "Could not check your session. Please try again.");
     }
     if (result.user) {
-      window.location.replace("create-task.html");
+      window.location.replace("dashboard.html");
     }
   })
   .catch((error) => {
