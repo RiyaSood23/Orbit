@@ -1,6 +1,6 @@
-# Orbit - TeamFlow CE-1
+# Orbit - Team Collaboration & Work Management System
 
-Orbit is a static HTML, CSS and JavaScript prototype for the TeamFlow OSC team management system. The Node.js server only serves the prototype locally; there is no database, authentication, file upload, or persistent approval/comment storage.
+
 
 ## Requirements
 
