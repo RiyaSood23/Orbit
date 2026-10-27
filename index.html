@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#18253f">
+  <script>
+    if (window.location.protocol === "file:") {
+      window.location.replace("http://localhost:3000/index.html");
+    }
+  </script>
+  <title>Sign in | Orbit TeamFlow</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --navy: #18253f;
+      --ink: #1d2942;
+      --muted: #78839a;
+      --border: #e7eaf1;
+      --purple: #6758d6;
+      --purple-light: #b7b2ff;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      display: grid;
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      place-items: center;
+      padding: 32px;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at 9% 12%, rgba(103, 88, 214, .11), transparent 31%),
+        radial-gradient(ellipse at 93% 88%, rgba(81, 137, 210, .09), transparent 30%),
+        #f4f5fb;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: inherit; text-decoration: none; }
+    button, input { font: inherit; }
+    .page-shell {
+      display: grid;
+      width: min(1220px, 100%);
+      min-height: min(760px, calc(100vh - 64px));
+      grid-template-columns: 1.03fr .97fr;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .9);
+      border-radius: 28px;
+      background: #fff;
+      box-shadow: 0 30px 90px rgba(30, 42, 75, .14), 0 4px 14px rgba(30, 42, 75, .05);
+    }
+    .welcome-panel {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+      padding: 42px clamp(36px, 5vw, 68px) 32px;
+      color: #fff;
+      background:
+        radial-gradient(ellipse at 82% 18%, rgba(117, 98, 231, .36), transparent 36%),
+        linear-gradient(145deg, #17243d 0%, #202e4d 55%, #26345a 100%);
+    }
+    .welcome-panel::before, .welcome-panel::after { position: absolute; z-index: 0; border: 1px solid rgba(255, 255, 255, .08); border-radius: 50%; content: ""; pointer-events: none; }
+    .welcome-panel::before { top: 23%; right: -210px; width: 480px; height: 480px; }
+    .welcome-panel::after { top: 30%; right: -145px; width: 350px; height: 350px; }
+    .brand, .welcome-copy, .workspace-preview, .welcome-footer { position: relative; z-index: 1; }
+    .brand { display: inline-flex; align-items: center; gap: 12px; width: fit-content; color: #fff; font-size: 23px; font-weight: 760; letter-spacing: -.04em; }
+    .brand-mark { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid rgba(255, 255, 255, .22); border-radius: 13px; background: linear-gradient(140deg, #8171f1, #5f4ed1); box-shadow: 0 8px 22px rgba(103, 88, 214, .3); font-size: 20px; font-weight: 800; }
+    .welcome-copy { max-width: 520px; margin: auto 0 24px; padding-top: 40px; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 9px; margin: 0 0 19px; color: #d3ceff; font-size: 12px; font-weight: 760; letter-spacing: .12em; text-transform: uppercase; }
+    .eyebrow::before { width: 8px; height: 8px; border-radius: 50%; background: #9c8dff; box-shadow: 0 0 0 5px rgba(156, 141, 255, .14); content: ""; }
+    .welcome-copy h1 { max-width: 500px; margin: 0 0 17px; font-size: clamp(42px, 4.1vw, 58px); letter-spacing: -.055em; line-height: 1.04; }
+    .welcome-copy > p:last-child { max-width: 430px; margin: 0; color: #c3cce0; font-size: 17px; line-height: 1.75; }
+    .workspace-preview { position: relative; z-index: 1; margin: 0 0 4px; padding: 13px 10px 10px; perspective: 1100px; }
+    .workspace-preview::before { position: absolute; inset: 20% 12% 8%; border-radius: 50%; background: rgba(153, 133, 255, .24); content: ""; filter: blur(38px); pointer-events: none; }
+    .visual-frame { position: relative; z-index: 1; overflow: hidden; border: 1px solid rgba(255, 255, 255, .72); border-radius: 17px; background: #f7f8fc; box-shadow: 0 25px 55px rgba(4, 10, 25, .36), 0 4px 12px rgba(255, 255, 255, .16) inset; transform: rotateX(0) rotateY(0) translateY(0) scale(1); transform-style: preserve-3d; transition: transform .42s cubic-bezier(.2, .75, .25, 1), box-shadow .42s; will-change: transform; }
+    .workspace-preview:hover .visual-frame { box-shadow: 0 34px 68px rgba(4, 10, 25, .4), 0 4px 12px rgba(255, 255, 255, .18) inset; }
+    .dashboard-visual { display: block; width: 100%; height: auto; }
+    .visual-caption { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; gap: 8px; margin: 13px 0 0; color: #d8dced; font-size: 11px; font-weight: 650; letter-spacing: .015em; text-align: center; }
+    .visual-caption span { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #92e4c2; box-shadow: 0 0 0 4px rgba(146, 228, 194, .12); }
+    .welcome-footer { margin: 24px 0 0; color: #aeb9d0; font-size: 12px; }
+    .login-area { display: grid; min-width: 0; place-items: center; padding: 58px clamp(34px, 5vw, 72px); }
+    .login-card { width: min(100%, 460px); }
+    .mobile-brand { display: none; }
+    .auth-overline { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 30px; }
+    .auth-brand { display: inline-flex; align-items: center; gap: 9px; color: var(--navy); font-size: 16px; font-weight: 800; letter-spacing: -.03em; }
+    .auth-brand-mark { display: grid; width: 31px; height: 31px; place-items: center; border-radius: 10px; color: #fff; background: linear-gradient(140deg, #8171f1, #5f4ed1); box-shadow: 0 5px 12px rgba(103, 88, 214, .18); }
+    .secure-badge { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #e8eaf2; border-radius: 999px; padding: 7px 10px; color: #77819a; background: #fbfbfd; font-size: 10px; font-weight: 750; letter-spacing: .07em; }
+    .secure-badge svg { width: 13px; height: 13px; color: #42a47c; }
+    .form-kicker { margin: 0 0 10px; color: var(--purple); font-size: 11px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    .login-card h2 { margin: 0 0 10px; font-size: 38px; letter-spacing: -.05em; line-height: 1.12; }
+    .intro { margin: 0 0 29px; color: var(--muted); font-size: 15px; line-height: 1.65; }
+    .field { margin-bottom: 19px; }
+    label { display: block; margin-bottom: 9px; font-size: 13px; font-weight: 720; }
+    input {
+      width: 100%;
+      min-height: 54px;
+      border: 1px solid #e1e5ef;
+      border-radius: 10px;
+      padding: 13px 15px;
+      color: var(--ink);
+      background: #fbfcfe;
+      outline: none;
+      font-size: 15px;
+      transition: border-color .18s, box-shadow .18s, background .18s;
+    }
+    input::placeholder { color: #a0a8b8; }
+    input:focus { border-color: var(--purple); background: #fff; box-shadow: 0 0 0 4px rgba(103, 88, 214, .12); }
+    .input-wrap { position: relative; }
+    .input-wrap > svg { position: absolute; z-index: 1; top: 50%; left: 15px; width: 18px; height: 18px; color: #9aa3b5; pointer-events: none; transform: translateY(-50%); }
+    .input-wrap input { padding-left: 44px; }
+    .input-wrap input.has-toggle { padding-right: 54px; }
+    .password-toggle { position: absolute; top: 50%; right: 9px; display: grid; width: 36px; height: 36px; place-items: center; border: 0; border-radius: 8px; color: #8b95a8; background: transparent; cursor: pointer; transform: translateY(-50%); transition: color .15s, background .15s; }
+    .password-toggle:hover { color: var(--purple); background: #f1efff; }
+    .password-toggle svg { width: 18px; height: 18px; }
+    .form-options { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 3px 0 25px; font-size: 13px; }
+    .remember { display: inline-flex; align-items: center; gap: 9px; margin: 0; color: var(--muted); font-weight: 550; }
+    .remember input { width: 17px; min-height: 17px; height: 17px; margin: 0; accent-color: var(--purple); }
+    .text-link { border: 0; padding: 0; color: var(--purple); background: transparent; cursor: pointer; font-size: inherit; font-weight: 720; }
+    .submit-button {
+      position: relative;
+      width: 100%;
+      min-height: 54px;
+      border: 0;
+      border-radius: 10px;
+      color: #fff;
+      background: linear-gradient(105deg, #6758d6, #5746c8);
+      box-shadow: 0 9px 20px rgba(103, 88, 214, .22);
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 760;
+      transition: transform .18s, box-shadow .18s, opacity .18s;
+    }
+    .submit-button:hover { transform: translateY(-2px); box-shadow: 0 13px 25px rgba(103, 88, 214, .3); }
+    .submit-button:disabled { cursor: wait; opacity: .68; transform: none; }
+    .mode-switch { margin: 22px 0 0; color: var(--muted); font-size: 14px; text-align: center; }
+    .mode-switch button { border: 0; padding: 0; color: var(--purple); background: transparent; cursor: pointer; font: inherit; font-weight: 760; }
+    .mode-switch button:hover, .text-link:hover { color: #493ab7; text-decoration: underline; text-underline-offset: 3px; }
+    .demo-note { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 26px 0 0; border-top: 1px solid #eef0f5; padding-top: 17px; color: #98a1b3; font-size: 11px; line-height: 1.55; text-align: center; }
+    .demo-note svg { flex: 0 0 15px; width: 15px; height: 15px; color: #42a47c; }
+    .form-feedback { display: none; margin: 0 0 19px; border: 1px solid #f0c4c8; border-radius: 10px; padding: 13px 15px; color: #a53d49; background: #fff3f4; font-size: 13px; line-height: 1.55; }
+    .form-feedback.is-visible { display: block; }
+    .form-feedback.is-success { border-color: #bfe7d4; color: #19704d; background: #effaf4; }
+    .auth-signup .login-area { padding-top: 30px; padding-bottom: 30px; }
+    .auth-signup .auth-overline { margin-bottom: 20px; }
+    .auth-signup .intro { margin-bottom: 14px; }
+    .auth-signup .field { margin-bottom: 11px; }
+    .auth-signup #signup-form input { min-height: 46px; }
+    .auth-signup #signup-form .submit-button { min-height: 50px; }
+    .auth-signup .mode-switch { margin-top: 16px; }
+    .auth-signup .demo-note { margin-top: 12px; padding-top: 12px; }
+    @media (max-width: 980px) {
+      body { padding: 22px; }
+      .page-shell { min-height: min(760px, calc(100vh - 44px)); grid-template-columns: .95fr 1.05fr; }
+      .welcome-panel { padding-right: 36px; padding-left: 36px; }
+      .welcome-copy h1 { font-size: clamp(38px, 5vw, 50px); }
+      .login-area { padding-right: 38px; padding-left: 38px; }
+    }
+    @media (max-width: 720px) {
+      body { display: block; padding: 0; }
+      .page-shell { display: block; width: 100%; min-height: 100vh; border: 0; border-radius: 0; }
+      .welcome-panel { min-height: 300px; padding: 25px 26px 30px; }
+      .brand { font-size: 21px; }
+      .brand-mark { width: 36px; height: 36px; }
+      .welcome-copy { margin: 38px 0 0; padding: 0; }
+      .welcome-copy h1 { max-width: 440px; margin-bottom: 11px; font-size: clamp(34px, 8vw, 46px); }
+      .welcome-copy > p:last-child { max-width: 450px; font-size: 15px; }
+      .workspace-preview { display: block; margin: 18px 0 0; padding: 7px 0 0; }
+      .welcome-footer { display: none; }
+      .login-area { min-height: 0; padding: 34px 25px 48px; }
+      .login-card { width: min(100%, 480px); }
+      .mobile-brand { display: none; }
+      .auth-overline { margin-bottom: 23px; }
+      .login-card h2 { font-size: 34px; }
+    }
+    @media (max-width: 420px) {
+      .welcome-panel { min-height: 275px; padding: 22px 20px 26px; }
+      .welcome-copy { margin-top: 32px; }
+      .login-area { padding: 34px 20px 42px; }
+      .form-options { align-items: flex-start; font-size: 12px; }
+      .login-card h2 { font-size: 31px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+    }
+    @media (min-width: 721px) and (max-height: 780px) {
+      body { padding: 12px; }
+      .page-shell { min-height: min(760px, calc(100vh - 24px)); }
+      .welcome-panel { justify-content: flex-start; padding-top: 26px; }
+      .welcome-copy { margin: auto 0 12px; padding-top: 0; }
+      .workspace-preview { margin-bottom: 0; padding: 8px 6px 6px; }
+      .welcome-footer { display: none; }
+      .login-area { padding-top: 26px; padding-bottom: 26px; }
+      .auth-signup .login-area { padding-top: 18px; padding-bottom: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page-shell">
+    <section class="welcome-panel" aria-label="About Orbit">
+      <a class="brand" href="index.html" aria-label="Orbit sign in">
+        <span class="brand-mark">O</span>
+        <span>Orbit</span>
+      </a>
+      <div class="welcome-copy">
+        <p class="eyebrow">TeamFlow workspace</p>
+        <h1>Make good work happen together.</h1>
+        <p>Bring your team, tasks, and feedback into one calm, focused workspace.</p>
+      </div>
+      <div class="workspace-preview" id="workspace-preview">
+        <div class="visual-frame" id="workspace-visual">
+          <svg class="dashboard-visual" viewBox="0 0 620 350" role="img" aria-labelledby="visual-title visual-description">
+            <title id="visual-title">Orbit team workspace preview</title>
+            <desc id="visual-description">A project dashboard showing team tasks, project progress, and recent activity.</desc>
+            <defs>
+              <linearGradient id="visual-background" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0%" stop-color="#fff"></stop>
+                <stop offset="100%" stop-color="#f6f5ff"></stop>
+              </linearGradient>
+              <linearGradient id="visual-accent" x1="0" x2="1">
+                <stop offset="0%" stop-color="#7767e8"></stop>
+                <stop offset="100%" stop-color="#5a49c6"></stop>
+              </linearGradient>
+              <linearGradient id="visual-chart" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#8375ea" stop-opacity=".22"></stop>
+                <stop offset="100%" stop-color="#8375ea" stop-opacity="0"></stop>
+              </linearGradient>
+            </defs>
+            <rect width="620" height="350" fill="url(#visual-background)"></rect>
+            <rect width="126" height="350" fill="#f0effb"></rect>
+            <rect x="20" y="19" width="25" height="25" rx="8" fill="url(#visual-accent)"></rect>
+            <text x="32.5" y="36" fill="#fff" font-family="Arial,sans-serif" font-size="13" font-weight="700" text-anchor="middle">O</text>
+            <text x="53" y="36" fill="#25304a" font-family="Arial,sans-serif" font-size="13" font-weight="700">Orbit</text>
+            <rect x="17" y="70" width="92" height="25" rx="7" fill="#e1def9"></rect>
+            <circle cx="30" cy="82.5" r="4" fill="#6959d4"></circle>
+            <rect x="41" y="79" width="47" height="6" rx="3" fill="#6657ce"></rect>
+            <g fill="#a5abc0">
+              <circle cx="27" cy="117" r="4"></circle><rect x="40" y="114" width="48" height="6" rx="3"></rect>
+              <circle cx="27" cy="145" r="4"></circle><rect x="40" y="142" width="58" height="6" rx="3"></rect>
+              <circle cx="27" cy="173" r="4"></circle><rect x="40" y="170" width="43" height="6" rx="3"></rect>
+              <circle cx="27" cy="201" r="4"></circle><rect x="40" y="198" width="53" height="6" rx="3"></rect>
+            </g>
+            <circle cx="29" cy="322" r="10" fill="#d9d4ff"></circle>
+            <text x="29" y="325.5" fill="#5547bd" font-family="Arial,sans-serif" font-size="8" font-weight="700" text-anchor="middle">RS</text>
+            <text x="45" y="320" fill="#46506b" font-family="Arial,sans-serif" font-size="8" font-weight="700">Riya Sood</text>
+            <text x="45" y="330" fill="#9299ac" font-family="Arial,sans-serif" font-size="7">Team lead</text>
+            <text x="151" y="37" fill="#303a53" font-family="Arial,sans-serif" font-size="15" font-weight="700">Good morning, Riya</text>
+            <text x="151" y="54" fill="#9299ac" font-family="Arial,sans-serif" font-size="8">Here’s what’s happening with your team today.</text>
+            <rect x="151" y="70" width="134" height="57" rx="9" fill="#fff" stroke="#e9eaf2"></rect>
+            <text x="164" y="88" fill="#9299ac" font-family="Arial,sans-serif" font-size="8">Tasks in progress</text>
+            <text x="164" y="113" fill="#29344d" font-family="Arial,sans-serif" font-size="21" font-weight="700">18</text>
+            <rect x="265" y="96" width="7" height="21" rx="3.5" fill="#dbd6ff"></rect>
+            <rect x="275" y="87" width="7" height="30" rx="3.5" fill="#9c90ef"></rect>
+            <rect x="243" y="107" width="7" height="10" rx="3.5" fill="#6758d6"></rect>
+            <rect x="298" y="70" width="134" height="57" rx="9" fill="#fff" stroke="#e9eaf2"></rect>
+            <text x="311" y="88" fill="#9299ac" font-family="Arial,sans-serif" font-size="8">Completed this week</text>
+            <text x="311" y="113" fill="#29344d" font-family="Arial,sans-serif" font-size="21" font-weight="700">24</text>
+            <rect x="393" y="88" width="26" height="15" rx="7.5" fill="#e4f6ed"></rect>
+            <text x="406" y="98.5" fill="#25815c" font-family="Arial,sans-serif" font-size="7" font-weight="700" text-anchor="middle">+18%</text>
+            <rect x="445" y="70" width="155" height="57" rx="9" fill="#fff" stroke="#e9eaf2"></rect>
+            <text x="458" y="88" fill="#9299ac" font-family="Arial,sans-serif" font-size="8">Team momentum</text>
+            <text x="458" y="113" fill="#29344d" font-family="Arial,sans-serif" font-size="21" font-weight="700">92%</text>
+            <rect x="548" y="92" width="37" height="7" rx="3.5" fill="#efedf9"></rect>
+            <rect x="548" y="92" width="32" height="7" rx="3.5" fill="#6c5dd7"></rect>
+            <rect x="151" y="141" width="278" height="188" rx="9" fill="#fff" stroke="#e9eaf2"></rect>
+            <text x="166" y="162" fill="#39435b" font-family="Arial,sans-serif" font-size="9" font-weight="700">Team activity</text>
+            <text x="166" y="175" fill="#9aa1b3" font-family="Arial,sans-serif" font-size="7">Task completion over the last 7 days</text>
+            <g stroke="#edf0f5" stroke-width="1">
+              <path d="M168 198H412M168 230H412M168 262H412M168 294H412"></path>
+              <path d="M168 188V304M229 188V304M290 188V304M351 188V304M412 188V304"></path>
+            </g>
+            <path d="M168 272 C191 267 198 247 222 253 S253 276 278 246 S312 252 337 228 S370 241 392 208 S405 212 412 198 V304 H168Z" fill="url(#visual-chart)"></path>
+            <path d="M168 272 C191 267 198 247 222 253 S253 276 278 246 S312 252 337 228 S370 241 392 208 S405 212 412 198" fill="none" stroke="#6c5dd7" stroke-linecap="round" stroke-width="2.5"></path>
+            <circle cx="392" cy="208" r="4" fill="#fff" stroke="#6c5dd7" stroke-width="2.5"></circle>
+            <rect x="441" y="141" width="159" height="188" rx="9" fill="#fff" stroke="#e9eaf2"></rect>
+            <text x="455" y="162" fill="#39435b" font-family="Arial,sans-serif" font-size="9" font-weight="700">Recent tasks</text>
+            <g>
+              <circle cx="463" cy="190" r="8" fill="#eeeaff"></circle><path d="m460 190 2 2 4-4" fill="none" stroke="#6758d6" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+              <text x="478" y="188" fill="#4a5368" font-family="Arial,sans-serif" font-size="7" font-weight="700">Onboarding flow</text><text x="478" y="198" fill="#9aa1b3" font-family="Arial,sans-serif" font-size="6">Design · Today</text>
+              <path d="M455 211H586" stroke="#f0f1f5"></path>
+              <circle cx="463" cy="229" r="8" fill="#e6f4f0"></circle><path d="m460 229 2 2 4-4" fill="none" stroke="#388b70" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+              <text x="478" y="227" fill="#4a5368" font-family="Arial,sans-serif" font-size="7" font-weight="700">Review sprint notes</text><text x="478" y="237" fill="#9aa1b3" font-family="Arial,sans-serif" font-size="6">Planning · Tomorrow</text>
+              <path d="M455 250H586" stroke="#f0f1f5"></path>
+              <circle cx="463" cy="268" r="8" fill="#fff1df"></circle><circle cx="463" cy="268" r="3" fill="#d59743"></circle>
+              <text x="478" y="266" fill="#4a5368" font-family="Arial,sans-serif" font-size="7" font-weight="700">Update team roadmap</text><text x="478" y="276" fill="#9aa1b3" font-family="Arial,sans-serif" font-size="6">Product · Friday</text>
+              <path d="M455 289H586" stroke="#f0f1f5"></path>
+              <circle cx="461" cy="309" r="5" fill="#edb57e"></circle><circle cx="472" cy="309" r="5" fill="#7898df"></circle><circle cx="483" cy="309" r="5" fill="#75b997"></circle>
+              <text x="494" y="312" fill="#9aa1b3" font-family="Arial,sans-serif" font-size="6">Your team is in sync</text>
+            </g>
+          </svg>
+        </div>
+        <p class="visual-caption"><span aria-hidden="true"></span>Your team’s work, all in one place</p>
+      </div>
+      <p class="welcome-footer">A simpler way to keep your team moving forward.</p>
+    </section>
+
+    <section class="login-area" aria-labelledby="login-title">
+      <div class="login-card">
+        <div class="auth-overline">
+          <a class="auth-brand" href="index.html" aria-label="Orbit sign in">
+            <span class="auth-brand-mark">O</span>
+            <span>Orbit</span>
+          </a>
+          <span class="secure-badge">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3M6 10h12v10H6V10Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="m10 15 1.4 1.4L14.5 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            SECURE WORKSPACE
+          </span>
+        </div>
+        <p class="form-kicker" id="form-kicker">TEAMFLOW ACCESS</p>
+        <h2 id="login-title">Welcome back</h2>
+        <p class="intro" id="login-intro">Sign in to pick up where your team left off.</p>
+        <p class="form-feedback" id="auth-feedback" role="alert" aria-live="polite"></p>
+        <form id="login-form">
+          <div class="field">
+            <label for="email">Work email</label>
+            <div class="input-wrap">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="3" stroke="currentColor" stroke-width="1.7"/><path d="m5 7 7 5.5L19 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <input id="email" name="email" type="email" autocomplete="username" placeholder="you@company.com" required>
+            </div>
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <div class="input-wrap">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              <input class="has-toggle" id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
+              <button class="password-toggle" id="toggle-password" type="button" aria-label="Show password" aria-pressed="false">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.6" stroke="currentColor" stroke-width="1.7"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="form-options">
+            <label class="remember" for="remember">
+              <input id="remember" name="remember" type="checkbox">
+              <span>Remember me</span>
+            </label>
+            <button class="text-link" id="forgot-password" type="button">Forgot password?</button>
+          </div>
+          <button class="submit-button" type="submit">Sign in</button>
+        </form>
+        <form id="signup-form" hidden>
+          <div class="field">
+            <label for="signup-name">Full name</label>
+            <input id="signup-name" name="name" type="text" autocomplete="name" minlength="2" maxlength="80" placeholder="Your name" required>
+          </div>
+          <div class="field">
+            <label for="signup-email">Work email</label>
+            <input id="signup-email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@company.com" required>
+          </div>
+          <div class="field">
+            <label for="signup-password">Password</label>
+            <input id="signup-password" name="password" type="password" autocomplete="new-password" minlength="10" maxlength="128" placeholder="At least 10 characters" required>
+          </div>
+          <div class="field">
+            <label for="signup-confirm-password">Confirm password</label>
+            <input id="signup-confirm-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="10" maxlength="128" placeholder="Enter your password again" required>
+          </div>
+          <button class="submit-button" type="submit">Create account</button>
+        </form>
+        <p class="mode-switch" id="mode-switch">
+          New to Orbit? <button type="button" id="show-signup">Create an account</button>
+        </p>
+        <p class="demo-note">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 7 3v5c0 4.5-2.8 7.8-7 10-4.2-2.2-7-5.5-7-10V6l7-3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Accounts stay on this local Orbit server. Use the same email and password when you return.
+        </p>
+      </div>
+    </section>
+  </main>
+  <script src="js/login.js" defer></script>
+</body>
+</html>
