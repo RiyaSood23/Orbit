@@ -1,6 +1,20 @@
 # Orbit - Team Collaboration & Work Management System
 
+Orbit is a team collaboration and work management system designed to help teams organise projects, assign work, review submissions, and communicate in one place.
 
+For CE-1, the project is being developed as a static HTML, CSS and JavaScript implementation. For CE-2, this implementation will be converted into a React application. The current Node.js server only serves the front-end files locally; it does not provide a database, authentication, file uploads, or persistent data storage.
+
+## Team members
+
+- Riya
+- Meghna
+- Vaibhavi
+- Vanshita
+
+## Project phases
+
+- **CE-1:** HTML, CSS and JavaScript implementation
+- **CE-2:** Conversion to React
 
 ## Requirements
 
