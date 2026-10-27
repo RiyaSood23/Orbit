@@ -1,0 +1,9 @@
+{
+  "name": "orbit",
+  "version": "1.0.0",
+  "description": "TeamFlow CE-1 static prototype",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  }
+}

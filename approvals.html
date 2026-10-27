@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Approvals | Orbit TeamFlow</title>
+  <link rel="stylesheet" href="css/approvals.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="dashboard.html" aria-label="Orbit home">
+        <span class="brand-mark">O</span>
+        <span>Orbit</span>
+      </a>
+      <nav class="navigation" aria-label="Main navigation">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="team.html">Teams</a>
+        <a href="create-task.html">Create Task</a>
+        <a class="active" href="approvals.html" aria-current="page">Approvals</a>
+      </nav>
+      <a class="logout-link" href="index.html">Log out</a>
+    </aside>
+
+    <main class="main-content">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">Workspace / Approvals</p>
+          <h1>Review task</h1>
+          <p class="subtitle">Check the submission and share feedback with your team.</p>
+        </div>
+        <div class="reviewer-avatar" title="Current reviewer">RS</div>
+      </header>
+
+      <section class="review-card" aria-labelledby="task-title">
+        <div class="action-toolbar" aria-label="Review actions">
+          <span class="toolbar-label">Review decision</span>
+          <div class="action-buttons">
+            <button class="button button-success" id="approve-button" type="button">Approve</button>
+            <button class="button button-warning" id="changes-button" type="button">Request Changes</button>
+            <button class="button button-danger" id="reject-button" type="button">Reject</button>
+          </div>
+        </div>
+
+        <div class="task-heading">
+          <div>
+            <span class="status status-pending" id="task-status">Pending review</span>
+            <h2 id="task-title">Design the onboarding flow</h2>
+            <p class="task-description">Create a clear, welcoming onboarding experience for new TeamFlow members. Include the first-login journey, empty states, and a short handoff note for the development team.</p>
+          </div>
+          <div class="task-code">TASK-024</div>
+        </div>
+
+        <div class="task-details">
+          <div><span class="detail-label">Assigned member</span><strong>Arjun Mehta</strong></div>
+          <div><span class="detail-label">Due date</span><strong>28 October 2026</strong></div>
+          <div><span class="detail-label">Submitted</span><strong>26 October 2026</strong></div>
+          <div><span class="detail-label">Submission</span><a href="#" class="submission-link" id="submission-link">onboarding-flow.fig</a></div>
+        </div>
+
+        <div class="workspace-grid">
+          <section class="timeline-section" aria-labelledby="activity-title">
+            <div class="section-heading">
+              <h3 id="activity-title">Activity</h3>
+              <span>Latest updates</span>
+            </div>
+            <ol class="timeline" id="activity-list">
+              <li><span class="timeline-dot dot-blue"></span><div><strong>Arjun submitted the work</strong><time>26 October 2026, 4:18 PM</time><p>Added the onboarding screens and developer handoff notes.</p></div></li>
+              <li><span class="timeline-dot dot-purple"></span><div><strong>Reviewer added feedback</strong><time>26 October 2026, 5:02 PM</time><p>Requested a final check of the empty-state copy.</p></div></li>
+              <li><span class="timeline-dot dot-green"></span><div><strong>Task moved to review</strong><time>26 October 2026, 5:10 PM</time><p>The submission is ready for your decision.</p></div></li>
+            </ol>
+          </section>
+
+          <section class="collaborators-section" aria-labelledby="collaborators-title">
+            <div class="section-heading"><h3 id="collaborators-title">Collaborators</h3></div>
+            <div class="collaborator"><span class="avatar avatar-orange">AM</span><div><strong>Arjun Mehta</strong><span>Assignee</span></div></div>
+            <div class="collaborator"><span class="avatar avatar-blue">RS</span><div><strong>Riya Sood</strong><span>Reviewer</span></div></div>
+            <div class="collaborator"><span class="avatar avatar-green">NK</span><div><strong>Nisha Kapoor</strong><span>Project lead</span></div></div>
+          </section>
+        </div>
+
+        <section class="comments-section" aria-labelledby="comments-title">
+          <div class="section-heading"><h3 id="comments-title">Comments and feedback</h3><span id="comment-count">2 messages</span></div>
+          <div class="conversation" id="conversation">
+            <article class="message"><span class="avatar avatar-orange">AM</span><div><div class="message-meta"><strong>Arjun Mehta</strong><time>Yesterday</time></div><p>I've added the empty-state examples and updated the handoff notes.</p></div></article>
+            <article class="message"><span class="avatar avatar-blue">RS</span><div><div class="message-meta"><strong>Riya Sood</strong><time>Yesterday</time></div><p>Looks good so far. Please double-check the copy before approval.</p></div></article>
+          </div>
+          <form class="comment-form" id="comment-form">
+            <label for="comment-input">Add a comment</label>
+            <div class="comment-input-row"><textarea id="comment-input" rows="2" placeholder="Write feedback for the team..." required></textarea><button class="button button-primary" type="submit">Send Comment</button></div>
+          </form>
+        </section>
+      </section>
+    </main>
+  </div>
+  <script src="js/approvals.js"></script>
+</body>
+</html>
