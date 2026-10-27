@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Approvals | Orbit TeamFlow</title>
+  <title>Approvals | Orbit</title>
   <link rel="stylesheet" href="css/approvals.css">
 </head>
 <body>
@@ -29,16 +29,23 @@
           <h1>Review task</h1>
           <p class="subtitle">Check the submission and share feedback with your team.</p>
         </div>
-        <div class="reviewer-avatar" title="Current reviewer">RS</div>
+        <div class="current-user">
+          <label for="role-select">Viewing as</label>
+          <select id="role-select">
+            <option value="reviewer">Vaibhavi - Reviewer</option>
+            <option value="team-lead">Riya - Team Lead</option>
+          </select>
+        </div>
       </header>
 
       <section class="review-card" aria-labelledby="task-title">
         <div class="action-toolbar" aria-label="Review actions">
-          <span class="toolbar-label">Review decision</span>
+          <span class="toolbar-label" id="toolbar-label">Reviewer actions</span>
           <div class="action-buttons">
-            <button class="button button-success" id="approve-button" type="button">Approve</button>
             <button class="button button-warning" id="changes-button" type="button">Request Changes</button>
-            <button class="button button-danger" id="reject-button" type="button">Reject</button>
+            <button class="button button-primary" id="lead-review-button" type="button">Ask Team Lead to Review</button>
+            <button class="button button-success lead-only" id="approve-button" type="button">Approve</button>
+            <button class="button button-danger lead-only" id="reject-button" type="button">Reject</button>
           </div>
         </div>
 
@@ -46,13 +53,13 @@
           <div>
             <span class="status status-pending" id="task-status">Pending review</span>
             <h2 id="task-title">Design the onboarding flow</h2>
-            <p class="task-description">Create a clear, welcoming onboarding experience for new TeamFlow members. Include the first-login journey, empty states, and a short handoff note for the development team.</p>
+            <p class="task-description">Create a clear, welcoming onboarding experience for new Orbit members. Include the first-login journey, empty states, and a short handoff note for the development team.</p>
           </div>
           <div class="task-code">TASK-024</div>
         </div>
 
         <div class="task-details">
-          <div><span class="detail-label">Assigned member</span><strong>Arjun Mehta</strong></div>
+          <div><span class="detail-label">Assigned members</span><strong>Vanshita and Meghna</strong></div>
           <div><span class="detail-label">Due date</span><strong>28 October 2026</strong></div>
           <div><span class="detail-label">Submitted</span><strong>26 October 2026</strong></div>
           <div><span class="detail-label">Submission</span><a href="#" class="submission-link" id="submission-link">onboarding-flow.fig</a></div>
@@ -65,25 +72,26 @@
               <span>Latest updates</span>
             </div>
             <ol class="timeline" id="activity-list">
-              <li><span class="timeline-dot dot-blue"></span><div><strong>Arjun submitted the work</strong><time>26 October 2026, 4:18 PM</time><p>Added the onboarding screens and developer handoff notes.</p></div></li>
-              <li><span class="timeline-dot dot-purple"></span><div><strong>Reviewer added feedback</strong><time>26 October 2026, 5:02 PM</time><p>Requested a final check of the empty-state copy.</p></div></li>
-              <li><span class="timeline-dot dot-green"></span><div><strong>Task moved to review</strong><time>26 October 2026, 5:10 PM</time><p>The submission is ready for your decision.</p></div></li>
+              <li><span class="timeline-dot dot-blue"></span><div><strong>Vanshita submitted the work</strong><time>26 October 2026, 4:18 PM</time><p>Added the onboarding screens and developer handoff notes.</p></div></li>
+              <li><span class="timeline-dot dot-purple"></span><div><strong>Vaibhavi approved the preliminary review</strong><time>26 October 2026, 5:02 PM</time><p>The reviewer completed the initial check and approved it to move forward.</p></div></li>
+              <li><span class="timeline-dot dot-green"></span><div><strong>Task moved forward for Riya's review</strong><time>26 October 2026, 5:10 PM</time><p>The submission is ready for the Team Lead's final decision.</p></div></li>
             </ol>
           </section>
 
           <section class="collaborators-section" aria-labelledby="collaborators-title">
             <div class="section-heading"><h3 id="collaborators-title">Collaborators</h3></div>
-            <div class="collaborator"><span class="avatar avatar-orange">AM</span><div><strong>Arjun Mehta</strong><span>Assignee</span></div></div>
-            <div class="collaborator"><span class="avatar avatar-blue">RS</span><div><strong>Riya Sood</strong><span>Reviewer</span></div></div>
-            <div class="collaborator"><span class="avatar avatar-green">NK</span><div><strong>Nisha Kapoor</strong><span>Project lead</span></div></div>
+            <div class="collaborator"><span class="avatar avatar-orange">V</span><div><strong>Vanshita</strong><span>Assignee</span></div></div>
+            <div class="collaborator"><span class="avatar avatar-purple">M</span><div><strong>Meghna</strong><span>Assignee</span></div></div>
+            <div class="collaborator"><span class="avatar avatar-blue">V</span><div><strong>Vaibhavi</strong><span>Reviewer</span></div></div>
+            <div class="collaborator"><span class="avatar avatar-green">R</span><div><strong>Riya</strong><span>Team Lead</span></div></div>
           </section>
         </div>
 
         <section class="comments-section" aria-labelledby="comments-title">
-          <div class="section-heading"><h3 id="comments-title">Comments and feedback</h3><span id="comment-count">2 messages</span></div>
+          <div class="section-heading"><h3 id="comments-title">Comments and feedback</h3><span id="comment-count">3 messages</span></div>
           <div class="conversation" id="conversation">
-            <article class="message"><span class="avatar avatar-orange">AM</span><div><div class="message-meta"><strong>Arjun Mehta</strong><time>Yesterday</time></div><p>I've added the empty-state examples and updated the handoff notes.</p></div></article>
-            <article class="message"><span class="avatar avatar-blue">RS</span><div><div class="message-meta"><strong>Riya Sood</strong><time>Yesterday</time></div><p>Looks good so far. Please double-check the copy before approval.</p></div></article>
+            <article class="message"><span class="avatar avatar-orange">V</span><div><div class="message-meta"><strong>Vanshita</strong><time>Yesterday</time></div><p>I've added the empty-state examples and updated the handoff notes.</p></div></article>
+            <article class="message"><span class="avatar avatar-blue">V</span><div><div class="message-meta"><strong>Vaibhavi</strong><time>Yesterday</time></div><p>I approved the preliminary review and moved this task forward for Riya's Team Lead review.</p></div></article>
           </div>
           <form class="comment-form" id="comment-form">
             <label for="comment-input">Add a comment</label>
@@ -105,6 +113,21 @@
       <div class="dialog-actions">
         <button class="button button-secondary" type="button" data-close-dialog>Cancel</button>
         <button class="button button-warning" type="submit">Request Changes</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog class="review-dialog" id="lead-review-dialog" aria-labelledby="lead-review-dialog-title">
+    <form method="dialog" class="review-dialog-form" id="lead-review-form">
+      <button class="dialog-close" type="button" aria-label="Close team lead review dialog">×</button>
+      <p class="eyebrow">Reviewer request</p>
+      <h2 id="lead-review-dialog-title">Ask Riya to review the entire task</h2>
+      <p class="dialog-description">Write a summary for Riya, the Team Lead, explaining what should be reviewed before a final decision.</p>
+      <label for="lead-review-feedback">Review request</label>
+      <textarea id="lead-review-feedback" rows="5" placeholder="Summarise the submission and what the Team Lead should check..." required></textarea>
+      <p class="dialog-error" id="lead-review-error" role="alert"></p>
+      <div class="dialog-actions">
+        <button class="button button-secondary" type="button" data-close-dialog>Cancel</button>
+        <button class="button button-primary" type="submit">Send Review Request</button>
       </div>
     </form>
   </dialog>
