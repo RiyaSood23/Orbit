@@ -8,6 +8,12 @@ const changesDialog = document.querySelector("#changes-dialog");
 const rejectDialog = document.querySelector("#reject-dialog");
 const changesForm = document.querySelector("#changes-form");
 const rejectForm = document.querySelector("#reject-form");
+const leadReviewDialog = document.querySelector("#lead-review-dialog");
+const leadReviewForm = document.querySelector("#lead-review-form");
+const roleSelect = document.querySelector("#role-select");
+const leadOnlyControls = document.querySelectorAll(".lead-only");
+const toolbarLabel = document.querySelector("#toolbar-label");
+const leadReviewButton = document.querySelector("#lead-review-button");
 
 function updateStatus(status, className, activityText) {
   statusElement.textContent = status;
@@ -25,8 +31,8 @@ function addFeedbackMessage(text) {
   const message = document.createElement("article");
   message.className = "message";
   message.innerHTML = `
-    <span class="avatar avatar-blue">RS</span>
-    <div><div class="message-meta"><strong>Riya Sood</strong><time>Just now</time></div><p></p></div>
+    <span class="avatar avatar-blue">V</span>
+    <div><div class="message-meta"><strong>Vanshita</strong><time>Just now</time></div><p></p></div>
   `;
   message.querySelector("p").textContent = text;
   conversation.append(message);
@@ -44,6 +50,15 @@ function closeReviewDialog(dialog) {
   dialog.querySelector(".dialog-error").textContent = "";
 }
 
+function updateRole() {
+  const isTeamLead = roleSelect.value === "team-lead";
+  leadOnlyControls.forEach((control) => {
+    control.hidden = !isTeamLead;
+  });
+  leadReviewButton.hidden = isTeamLead;
+  toolbarLabel.textContent = isTeamLead ? "Team Lead actions" : "Reviewer actions";
+}
+
 document.querySelector("#approve-button").addEventListener("click", () => {
   updateStatus("Approved", "status-approved", "Task was approved");
 });
@@ -54,6 +69,10 @@ document.querySelector("#changes-button").addEventListener("click", () => {
 
 document.querySelector("#reject-button").addEventListener("click", () => {
   openReviewDialog(rejectDialog);
+});
+
+leadReviewButton.addEventListener("click", () => {
+  openReviewDialog(leadReviewDialog);
 });
 
 document.querySelector("#submission-link").addEventListener("click", (event) => {
@@ -98,6 +117,22 @@ rejectForm.addEventListener("submit", (event) => {
   closeReviewDialog(rejectDialog);
 });
 
+leadReviewForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const feedback = document.querySelector("#lead-review-feedback").value.trim();
+  if (!feedback) {
+    document.querySelector("#lead-review-error").textContent = "Please write a review request for Riya.";
+    return;
+  }
+
+  addFeedbackMessage(`Review request sent to Riya: ${feedback}`);
+  const activity = document.createElement("li");
+  activity.innerHTML = `<span class="timeline-dot dot-purple"></span><div><strong>Vanshita asked Riya to review the entire task</strong><time>Just now</time><p></p></div>`;
+  activity.querySelector("p").textContent = feedback;
+  activityList.prepend(activity);
+  closeReviewDialog(leadReviewDialog);
+});
+
 document.querySelectorAll("[data-close-dialog], .dialog-close").forEach((button) => {
   button.addEventListener("click", () => {
     closeReviewDialog(button.closest("dialog"));
@@ -116,3 +151,6 @@ document.querySelectorAll(".review-dialog").forEach((dialog) => {
     }
   });
 });
+
+roleSelect.addEventListener("change", updateRole);
+updateRole();
