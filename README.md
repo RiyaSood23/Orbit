@@ -43,7 +43,7 @@ The review workspace is available at [http://localhost:3000/approvals.html](http
 
 - `index.html` - login/landing page
 - `dashboard.html` - dashboard page
-- `team.html` - teams page
+- Team information is displayed as static cards on `dashboard.html`
 - `create-task.html` - task creation page
 - `approvals.html` - task review workspace
 - `css/` - page stylesheets
