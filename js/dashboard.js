@@ -370,7 +370,7 @@
       });
     }
 
-    document.querySelectorAll(".team-card").forEach(function (card) {
+    document.querySelectorAll(".team-card[role='button']").forEach(function (card) {
       card.addEventListener("click", function () {
         selectTeamCard(card);
       });

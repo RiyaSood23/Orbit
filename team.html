@@ -1,0 +1,416 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Team Details | Orbit </title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/team.css">
+  <script src="js/team.js" defer></script>
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <aside class="sidebar">
+      <a class="brand" href="dashboard.html" aria-label="Orbit home">
+        <span class="brand-mark" aria-hidden="true">O</span>
+        <span>Orbit</span>
+      </a>
+
+      <nav class="navigation" aria-label="Main navigation">
+        <a href="dashboard.html">Dashboard</a>
+        <a class="active" href="team.html" aria-current="page">Teams</a>
+        <a href="create-task.html">Create Task</a>
+        <a href="approvals.html">Approvals</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+
+      <header class="topbar">
+        <div>
+          <p class="breadcrumb">
+            Dashboard <span>/</span> Teams <span>/</span>
+            <strong id="breadcrumbTeam">Team Orbit</strong>
+          </p>
+          <p class="eyebrow">TEAM WORKSPACE</p>
+        </div>
+
+        <div class="top-actions">
+          <span class="live-pill">
+            <span class="live-dot"></span> Workspace active
+          </span>
+
+          <button class="btn btn-primary" id="createTeamBtn" type="button">
+            + Create Team
+          </button>
+        </div>
+      </header>
+
+      <section class="team-heading">
+        <div>
+          <p class="eyebrow">YOUR TEAM, YOUR ORBIT</p>
+          <h1 id="teamName">Team Orbit<span>.</span></h1>
+          <p class="team-description" id="teamDescription">
+            One team. Shared goals. Work that moves forward.
+          </p>
+          <div class="team-meta">
+            <span>♧ <span id="headName">Aarav Sharma</span> · Team Head</span>
+            <span>◷ Updated <span id="lastUpdated">just now</span></span>
+          </div>
+        </div>
+
+        <div class="team-heading-art" aria-hidden="true">
+          <span class="large-ring ring-one"></span>
+          <span class="large-ring ring-two"></span>
+          <span class="large-orbit-dot"></span>
+          <span class="orbit-star">✳</span>
+        </div>
+      </section>
+
+      <!-- Summary boxes -->
+      <section class="summary-grid" aria-label="Team summary">
+        <article class="summary-box">
+          <div class="summary-icon sage-icon">♧</div>
+          <p>Total members</p>
+          <strong id="totalMembers">05</strong>
+          <small>People in your orbit</small>
+        </article>
+
+        <article class="summary-box">
+          <div class="summary-icon blue-icon">◉</div>
+          <p>Active members</p>
+          <strong id="activeMembers">04</strong>
+          <small>Currently contributing</small>
+        </article>
+
+        <article class="summary-box">
+          <div class="summary-icon peach-icon">✓</div>
+          <p>Active tasks</p>
+          <strong id="activeTasks">05</strong>
+          <small>Work in progress</small>
+        </article>
+
+        <article class="summary-box priority-summary">
+          <div class="summary-title">
+            <div>
+              <p>Priority events</p>
+              <h3>Upcoming deadlines</h3>
+            </div>
+            <span class="summary-icon peach-icon">!</span>
+          </div>
+
+          <div id="priorityEvents" class="priority-events"></div>
+        </article>
+      </section>
+
+      <!-- Members and checklist -->
+      <section class="workspace-grid">
+
+        <div class="members-section">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">THE PEOPLE BEHIND THE PROGRESS</p>
+              <h2>Team Members <span class="count-pill" id="memberCount">05</span></h2>
+            </div>
+
+            <select id="memberSort" aria-label="Sort team members">
+              <option value="name">Name A–Z</option>
+              <option value="progress">Highest progress</option>
+              <option value="activity">Most recently active</option>
+            </select>
+          </div>
+
+          <div class="member-search">
+            <span>⌕</span>
+            <input id="memberSearch" type="search"
+                   placeholder="Search members or skills..."
+                   aria-label="Search team members">
+          </div>
+
+          <div class="member-list" id="memberList"></div>
+        </div>
+
+        <aside class="checklist-panel panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">STAY ON TRACK</p>
+              <h2>Task Checklist</h2>
+            </div>
+            <span class="checklist-icon">✓</span>
+          </div>
+
+          <p class="muted-text">Small steps, bigger outcomes.</p>
+
+          <div class="checklist-progress">
+            <div class="progress-label">
+              <span>Checklist progress</span>
+              <strong id="checklistPercent">0%</strong>
+            </div>
+            <div class="progress-track">
+              <span id="checklistBar" style="width:0%"></span>
+            </div>
+          </div>
+
+          <div class="checklist" id="checklist"></div>
+
+          <button class="btn btn-outline btn-block" id="addChecklistBtn" type="button">
+            + Add checklist item
+          </button>
+        </aside>
+
+      </section>
+
+      <!-- Task cards -->
+      <section class="section-block">
+        <div class="section-heading section-heading-wrap">
+          <div>
+            <p class="eyebrow">MAKE EVERY TASK COUNT</p>
+            <h2>Task Progress</h2>
+            <p class="muted-text">Track ownership, priorities and completion.</p>
+          </div>
+
+          <button class="btn btn-primary" id="addTaskBtn" type="button">
+            + Add Task
+          </button>
+        </div>
+
+        <div class="task-toolbar panel">
+          <div class="filter-tabs" id="statusFilters">
+            <button class="filter-tab selected" data-status="all" type="button">
+              All <span id="allTaskCount">06</span>
+            </button>
+            <button class="filter-tab" data-status="In progress" type="button">
+              In progress
+            </button>
+            <button class="filter-tab" data-status="To do" type="button">
+              To do
+            </button>
+            <button class="filter-tab" data-status="In review" type="button">
+              In review
+            </button>
+            <button class="filter-tab" data-status="Completed" type="button">
+              Completed
+            </button>
+          </div>
+
+          <label class="sort-control">
+            Sort:
+            <select id="taskSort" aria-label="Sort tasks">
+              <option value="deadline">Due date</option>
+              <option value="priority">Priority</option>
+              <option value="progress">Progress</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="task-grid" id="taskGrid"></div>
+      </section>
+
+      <!-- Recent activity, priority tasks and top performers -->
+      <section class="bottom-grid">
+
+        <article class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">TEAM MOMENTS</p>
+              <h2>Recent Activity</h2>
+            </div>
+            <span class="panel-symbol">↗</span>
+          </div>
+
+          <div id="activityList" class="activity-list"></div>
+        </article>
+
+        <article class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">WHAT NEEDS ATTENTION</p>
+              <h2>Priority Tasks</h2>
+            </div>
+            <span class="panel-symbol">⚑</span>
+          </div>
+
+          <div id="priorityTaskList" class="priority-task-list"></div>
+        </article>
+
+        <article class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">TEAM CONTRIBUTIONS</p>
+              <h2>Top Performers</h2>
+            </div>
+            <label class="performer-sort-control">
+              <span>Sort points</span>
+              <select id="performerSort" aria-label="Sort performers by contribution points">
+                <option value="desc">Highest first</option>
+                <option value="asc">Lowest first</option>
+              </select>
+            </label>
+          </div>
+
+          <div id="topPerformers" class="top-performers"></div>
+
+          <div class="team-overview">
+            <div class="progress-label">
+              <span>Overall team progress</span>
+              <strong id="overallProgress">0%</strong>
+            </div>
+            <div class="progress-track">
+              <span id="overallProgressBar" style="width:0%"></span>
+            </div>
+          </div>
+
+          <div class="team-footer">
+            <span class="live-dot"></span>
+            Moving forward, together
+          </div>
+        </article>
+
+      </section>
+
+
+    </main>
+  </div>
+
+  <!-- Create task dialog -->
+  <dialog id="taskDialog">
+    <form id="taskForm">
+      <div class="dialog-header">
+        <div>
+          <p class="eyebrow">ADD TO THE WORKFLOW</p>
+          <h2>Create a Task</h2>
+        </div>
+        <button class="dialog-close" type="button" data-close="taskDialog"
+                aria-label="Close">×</button>
+      </div>
+
+      <label>
+        Task title
+        <input name="title" required maxlength="100"
+               placeholder="e.g. Finish dashboard UI">
+      </label>
+
+      <label>
+        Description
+        <textarea name="description" rows="3"
+                  placeholder="What needs to be done?"></textarea>
+      </label>
+
+      <div class="form-row">
+        <label>
+          Assign member
+          <select name="assignee" id="taskAssignee" required></select>
+        </label>
+
+        <label>
+          Priority
+          <select name="priority">
+            <option value="High">High</option>
+            <option value="Medium" selected>Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label>
+          Deadline
+          <input name="deadline" id="taskDeadline" type="date" required>
+        </label>
+
+        <label>
+          Initial progress (%)
+          <input name="progress" type="number" min="0" max="100" value="0">
+        </label>
+      </div>
+
+      <label>
+        Contribution points for completing this task
+        <input name="points" type="number" min="0" max="1000" step="1"
+               value="50" required>
+      </label>
+
+      <div class="dialog-actions">
+        <button class="btn btn-outline" type="button" data-close="taskDialog">
+          Cancel
+        </button>
+        <button class="btn btn-primary" type="submit">Create Task</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Create team dialog -->
+  <dialog id="teamDialog">
+    <form id="teamForm">
+      <div class="dialog-header">
+        <div>
+          <p class="eyebrow">BUILD YOUR ORBIT</p>
+          <h2>Create a Team</h2>
+        </div>
+        <button class="dialog-close" type="button" data-close="teamDialog"
+                aria-label="Close">×</button>
+      </div>
+
+      <label>
+        Team name
+        <input name="name" required maxlength="60"
+               placeholder="e.g. Team Nova">
+      </label>
+
+      <label>
+        Team description
+        <textarea name="description" rows="3" required
+                  placeholder="What will your team work towards?"></textarea>
+      </label>
+
+      <label>
+        Team head
+        <select name="head" id="teamHead" required></select>
+      </label>
+
+      <div class="dialog-actions">
+        <button class="btn btn-outline" type="button" data-close="teamDialog">
+          Cancel
+        </button>
+        <button class="btn btn-primary" type="submit">Create Team</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Add checklist item dialog -->
+  <dialog id="checklistDialog">
+    <form id="checklistForm">
+      <div class="dialog-header">
+        <div>
+          <p class="eyebrow">KEEP THE TEAM ALIGNED</p>
+          <h2>Checklist Item</h2>
+        </div>
+        <button class="dialog-close" type="button"
+                data-close="checklistDialog" aria-label="Close">×</button>
+      </div>
+
+      <label>
+        Item description
+        <input name="text" required maxlength="120"
+               placeholder="e.g. Review final designs">
+      </label>
+
+      <div class="dialog-actions">
+        <button class="btn btn-outline" type="button"
+                data-close="checklistDialog">Cancel</button>
+        <button class="btn btn-primary" type="submit">Add Item</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

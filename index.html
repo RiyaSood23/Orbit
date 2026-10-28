@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#18253f">
+  <meta name="theme-color" content="#eef4f0">
   <script>
     if (window.location.protocol === "file:") {
       window.location.replace("http://localhost:3000/index.html");
@@ -13,12 +13,12 @@
   <style>
     :root {
       color-scheme: light;
-      --navy: #18253f;
-      --ink: #1d2942;
-      --muted: #78839a;
-      --border: #e7eaf1;
-      --purple: #6758d6;
-      --purple-light: #b7b2ff;
+      --navy: #2f5340;
+      --ink: #1a2e24;
+      --muted: #6b8278;
+      --border: #d8e8de;
+      --purple: #5d9a7a;
+      --purple-light: #8fbf9f;
     }
 
     * { box-sizing: border-box; }
@@ -31,9 +31,9 @@
       padding: 32px;
       color: var(--ink);
       background:
-        radial-gradient(ellipse at 9% 12%, rgba(103, 88, 214, .11), transparent 31%),
-        radial-gradient(ellipse at 93% 88%, rgba(81, 137, 210, .09), transparent 30%),
-        #f4f5fb;
+        radial-gradient(ellipse at 9% 12%, rgba(93, 154, 122, .11), transparent 31%),
+        radial-gradient(ellipse at 93% 88%, rgba(106, 171, 130, .09), transparent 30%),
+        #eef4f0;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
     a { color: inherit; text-decoration: none; }
@@ -47,7 +47,7 @@
       border: 1px solid rgba(255, 255, 255, .9);
       border-radius: 28px;
       background: #fff;
-      box-shadow: 0 30px 90px rgba(30, 42, 75, .14), 0 4px 14px rgba(30, 42, 75, .05);
+      box-shadow: 0 30px 90px rgba(45, 90, 68, .14), 0 4px 14px rgba(45, 90, 68, .05);
     }
     .welcome-panel {
       position: relative;
@@ -58,26 +58,26 @@
       padding: 42px clamp(36px, 5vw, 68px) 32px;
       color: #fff;
       background:
-        radial-gradient(ellipse at 82% 18%, rgba(117, 98, 231, .36), transparent 36%),
-        linear-gradient(145deg, #17243d 0%, #202e4d 55%, #26345a 100%);
+        radial-gradient(ellipse at 82% 18%, rgba(106, 171, 130, .3), transparent 36%),
+        linear-gradient(145deg, #2f5340 0%, #3d6b54 55%, #4a7d62 100%);
     }
     .welcome-panel::before, .welcome-panel::after { position: absolute; z-index: 0; border: 1px solid rgba(255, 255, 255, .08); border-radius: 50%; content: ""; pointer-events: none; }
     .welcome-panel::before { top: 23%; right: -210px; width: 480px; height: 480px; }
     .welcome-panel::after { top: 30%; right: -145px; width: 350px; height: 350px; }
     .brand, .welcome-copy, .workspace-preview, .welcome-footer { position: relative; z-index: 1; }
     .brand { display: inline-flex; align-items: center; gap: 12px; width: fit-content; color: #fff; font-size: 23px; font-weight: 760; letter-spacing: -.04em; }
-    .brand-mark { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid rgba(255, 255, 255, .22); border-radius: 13px; background: linear-gradient(140deg, #8171f1, #5f4ed1); box-shadow: 0 8px 22px rgba(103, 88, 214, .3); font-size: 20px; font-weight: 800; }
+    .brand-mark { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid rgba(255, 255, 255, .22); border-radius: 13px; background: linear-gradient(140deg, #6aab82, #4a7d62); box-shadow: 0 8px 22px rgba(45, 90, 68, .3); font-size: 20px; font-weight: 800; }
     .welcome-copy { max-width: 520px; margin: auto 0 24px; padding-top: 40px; }
-    .eyebrow { display: inline-flex; align-items: center; gap: 9px; margin: 0 0 19px; color: #d3ceff; font-size: 12px; font-weight: 760; letter-spacing: .12em; text-transform: uppercase; }
-    .eyebrow::before { width: 8px; height: 8px; border-radius: 50%; background: #9c8dff; box-shadow: 0 0 0 5px rgba(156, 141, 255, .14); content: ""; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 9px; margin: 0 0 19px; color: #dceee3; font-size: 12px; font-weight: 760; letter-spacing: .12em; text-transform: uppercase; }
+    .eyebrow::before { width: 8px; height: 8px; border-radius: 50%; background: #8fbf9f; box-shadow: 0 0 0 5px rgba(143, 191, 159, .14); content: ""; }
     .welcome-copy h1 { max-width: 500px; margin: 0 0 17px; font-size: clamp(42px, 4.1vw, 58px); letter-spacing: -.055em; line-height: 1.04; }
     .welcome-copy > p:last-child { max-width: 430px; margin: 0; color: #c3cce0; font-size: 17px; line-height: 1.75; }
     .workspace-preview { position: relative; z-index: 1; margin: 0 0 4px; padding: 13px 10px 10px; perspective: 1100px; }
-    .workspace-preview::before { position: absolute; inset: 20% 12% 8%; border-radius: 50%; background: rgba(153, 133, 255, .24); content: ""; filter: blur(38px); pointer-events: none; }
-    .visual-frame { position: relative; z-index: 1; overflow: hidden; border: 1px solid rgba(255, 255, 255, .72); border-radius: 17px; background: #f7f8fc; box-shadow: 0 25px 55px rgba(4, 10, 25, .36), 0 4px 12px rgba(255, 255, 255, .16) inset; transform: rotateX(0) rotateY(0) translateY(0) scale(1); transform-style: preserve-3d; transition: transform .42s cubic-bezier(.2, .75, .25, 1), box-shadow .42s; will-change: transform; }
+    .workspace-preview::before { position: absolute; inset: 20% 12% 8%; border-radius: 50%; background: rgba(143, 191, 159, .24); content: ""; filter: blur(38px); pointer-events: none; }
+    .visual-frame { position: relative; z-index: 1; overflow: hidden; border: 1px solid rgba(255, 255, 255, .72); border-radius: 17px; background: #eef4f0; box-shadow: 0 25px 55px rgba(4, 10, 25, .36), 0 4px 12px rgba(255, 255, 255, .16) inset; transform: rotateX(0) rotateY(0) translateY(0) scale(1); transform-style: preserve-3d; transition: transform .42s cubic-bezier(.2, .75, .25, 1), box-shadow .42s; will-change: transform; }
     .workspace-preview:hover .visual-frame { box-shadow: 0 34px 68px rgba(4, 10, 25, .4), 0 4px 12px rgba(255, 255, 255, .18) inset; }
     .dashboard-visual { display: block; width: 100%; height: auto; }
-    .visual-caption { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; gap: 8px; margin: 13px 0 0; color: #d8dced; font-size: 11px; font-weight: 650; letter-spacing: .015em; text-align: center; }
+    .visual-caption { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; gap: 8px; margin: 13px 0 0; color: #dceee3; font-size: 11px; font-weight: 650; letter-spacing: .015em; text-align: center; }
     .visual-caption span { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #92e4c2; box-shadow: 0 0 0 4px rgba(146, 228, 194, .12); }
     .welcome-footer { margin: 24px 0 0; color: #aeb9d0; font-size: 12px; }
     .login-area { display: grid; min-width: 0; place-items: center; padding: 58px clamp(34px, 5vw, 72px); }
@@ -85,8 +85,8 @@
     .mobile-brand { display: none; }
     .auth-overline { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 30px; }
     .auth-brand { display: inline-flex; align-items: center; gap: 9px; color: var(--navy); font-size: 16px; font-weight: 800; letter-spacing: -.03em; }
-    .auth-brand-mark { display: grid; width: 31px; height: 31px; place-items: center; border-radius: 10px; color: #fff; background: linear-gradient(140deg, #8171f1, #5f4ed1); box-shadow: 0 5px 12px rgba(103, 88, 214, .18); }
-    .secure-badge { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #e8eaf2; border-radius: 999px; padding: 7px 10px; color: #77819a; background: #fbfbfd; font-size: 10px; font-weight: 750; letter-spacing: .07em; }
+    .auth-brand-mark { display: grid; width: 31px; height: 31px; place-items: center; border-radius: 10px; color: #fff; background: linear-gradient(140deg, #6aab82, #4a7d62); box-shadow: 0 5px 12px rgba(45, 90, 68, .18); }
+    .secure-badge { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #d8e8de; border-radius: 999px; padding: 7px 10px; color: #6b8278; background: #f7faf8; font-size: 10px; font-weight: 750; letter-spacing: .07em; }
     .secure-badge svg { width: 13px; height: 13px; color: #42a47c; }
     .form-kicker { margin: 0 0 10px; color: var(--purple); font-size: 11px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
     .login-card h2 { margin: 0 0 10px; font-size: 38px; letter-spacing: -.05em; line-height: 1.12; }
@@ -96,23 +96,23 @@
     input {
       width: 100%;
       min-height: 54px;
-      border: 1px solid #e1e5ef;
+      border: 1px solid var(--border);
       border-radius: 10px;
       padding: 13px 15px;
       color: var(--ink);
-      background: #fbfcfe;
+      background: #f7faf8;
       outline: none;
       font-size: 15px;
       transition: border-color .18s, box-shadow .18s, background .18s;
     }
     input::placeholder { color: #a0a8b8; }
-    input:focus { border-color: var(--purple); background: #fff; box-shadow: 0 0 0 4px rgba(103, 88, 214, .12); }
+    input:focus { border-color: var(--purple); background: #fff; box-shadow: 0 0 0 4px rgba(93, 154, 122, .15); }
     .input-wrap { position: relative; }
     .input-wrap > svg { position: absolute; z-index: 1; top: 50%; left: 15px; width: 18px; height: 18px; color: #9aa3b5; pointer-events: none; transform: translateY(-50%); }
     .input-wrap input { padding-left: 44px; }
     .input-wrap input.has-toggle { padding-right: 54px; }
     .password-toggle { position: absolute; top: 50%; right: 9px; display: grid; width: 36px; height: 36px; place-items: center; border: 0; border-radius: 8px; color: #8b95a8; background: transparent; cursor: pointer; transform: translateY(-50%); transition: color .15s, background .15s; }
-    .password-toggle:hover { color: var(--purple); background: #f1efff; }
+    .password-toggle:hover { color: var(--purple); background: #f0f7f3; }
     .password-toggle svg { width: 18px; height: 18px; }
     .form-options { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 3px 0 25px; font-size: 13px; }
     .remember { display: inline-flex; align-items: center; gap: 9px; margin: 0; color: var(--muted); font-weight: 550; }
@@ -125,23 +125,23 @@
       border: 0;
       border-radius: 10px;
       color: #fff;
-      background: linear-gradient(105deg, #6758d6, #5746c8);
-      box-shadow: 0 9px 20px rgba(103, 88, 214, .22);
+      background: linear-gradient(105deg, #5d9a7a, #3d6b54);
+      box-shadow: 0 9px 20px rgba(45, 90, 68, .22);
       cursor: pointer;
       font-size: 15px;
       font-weight: 760;
       transition: transform .18s, box-shadow .18s, opacity .18s;
     }
-    .submit-button:hover { transform: translateY(-2px); box-shadow: 0 13px 25px rgba(103, 88, 214, .3); }
+    .submit-button:hover { transform: translateY(-2px); box-shadow: 0 13px 25px rgba(45, 90, 68, .3); }
     .submit-button:disabled { cursor: wait; opacity: .68; transform: none; }
     .mode-switch { margin: 22px 0 0; color: var(--muted); font-size: 14px; text-align: center; }
     .mode-switch button { border: 0; padding: 0; color: var(--purple); background: transparent; cursor: pointer; font: inherit; font-weight: 760; }
-    .mode-switch button:hover, .text-link:hover { color: #493ab7; text-decoration: underline; text-underline-offset: 3px; }
-    .demo-note { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 26px 0 0; border-top: 1px solid #eef0f5; padding-top: 17px; color: #98a1b3; font-size: 11px; line-height: 1.55; text-align: center; }
+    .mode-switch button:hover, .text-link:hover { color: #3d6b54; text-decoration: underline; text-underline-offset: 3px; }
+    .demo-note { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 26px 0 0; border-top: 1px solid #d8e8de; padding-top: 17px; color: #6b8278; font-size: 11px; line-height: 1.55; text-align: center; }
     .demo-note svg { flex: 0 0 15px; width: 15px; height: 15px; color: #42a47c; }
     .form-feedback { display: none; margin: 0 0 19px; border: 1px solid #f0c4c8; border-radius: 10px; padding: 13px 15px; color: #a53d49; background: #fff3f4; font-size: 13px; line-height: 1.55; }
     .form-feedback.is-visible { display: block; }
-    .form-feedback.is-success { border-color: #bfe7d4; color: #19704d; background: #effaf4; }
+    .form-feedback.is-success { border-color: #b8d4c4; color: #2d8a5e; background: #e8f8ef; }
     .auth-signup .login-area { padding-top: 30px; padding-bottom: 30px; }
     .auth-signup .auth-overline { margin-bottom: 20px; }
     .auth-signup .intro { margin-bottom: 14px; }
@@ -216,74 +216,74 @@
             <defs>
               <linearGradient id="visual-background" x1="0" x2="1" y1="0" y2="1">
                 <stop offset="0%" stop-color="#fff"></stop>
-                <stop offset="100%" stop-color="#f6f5ff"></stop>
+                <stop offset="100%" stop-color="#f0f7f3"></stop>
               </linearGradient>
               <linearGradient id="visual-accent" x1="0" x2="1">
-                <stop offset="0%" stop-color="#7767e8"></stop>
-                <stop offset="100%" stop-color="#5a49c6"></stop>
+                <stop offset="0%" stop-color="#6aab82"></stop>
+                <stop offset="100%" stop-color="#4a7d62"></stop>
               </linearGradient>
               <linearGradient id="visual-chart" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stop-color="#8375ea" stop-opacity=".22"></stop>
-                <stop offset="100%" stop-color="#8375ea" stop-opacity="0"></stop>
+                <stop offset="0%" stop-color="#6aab82" stop-opacity=".22"></stop>
+                <stop offset="100%" stop-color="#6aab82" stop-opacity="0"></stop>
               </linearGradient>
             </defs>
             <rect width="620" height="350" fill="url(#visual-background)"></rect>
-            <rect width="126" height="350" fill="#f0effb"></rect>
+            <rect width="126" height="350" fill="#f0f7f3"></rect>
             <rect x="20" y="19" width="25" height="25" rx="8" fill="url(#visual-accent)"></rect>
             <text x="32.5" y="36" fill="#fff" font-family="Arial,sans-serif" font-size="13" font-weight="700" text-anchor="middle">O</text>
-            <text x="53" y="36" fill="#25304a" font-family="Arial,sans-serif" font-size="13" font-weight="700">Orbit</text>
-            <rect x="17" y="70" width="92" height="25" rx="7" fill="#e1def9"></rect>
-            <circle cx="30" cy="82.5" r="4" fill="#6959d4"></circle>
-            <rect x="41" y="79" width="47" height="6" rx="3" fill="#6657ce"></rect>
-            <g fill="#a5abc0">
+            <text x="53" y="36" fill="#1a2e24" font-family="Arial,sans-serif" font-size="13" font-weight="700">Orbit</text>
+            <rect x="17" y="70" width="92" height="25" rx="7" fill="#dceee3"></rect>
+            <circle cx="30" cy="82.5" r="4" fill="#5d9a7a"></circle>
+            <rect x="41" y="79" width="47" height="6" rx="3" fill="#4a7d62"></rect>
+            <g fill="#8fa399">
               <circle cx="27" cy="117" r="4"></circle><rect x="40" y="114" width="48" height="6" rx="3"></rect>
               <circle cx="27" cy="145" r="4"></circle><rect x="40" y="142" width="58" height="6" rx="3"></rect>
               <circle cx="27" cy="173" r="4"></circle><rect x="40" y="170" width="43" height="6" rx="3"></rect>
               <circle cx="27" cy="201" r="4"></circle><rect x="40" y="198" width="53" height="6" rx="3"></rect>
             </g>
-            <circle cx="29" cy="322" r="10" fill="#d9d4ff"></circle>
-            <text x="29" y="325.5" fill="#5547bd" font-family="Arial,sans-serif" font-size="8" font-weight="700" text-anchor="middle">RS</text>
-            <text x="45" y="320" fill="#46506b" font-family="Arial,sans-serif" font-size="8" font-weight="700">Riya Sood</text>
-            <text x="45" y="330" fill="#9299ac" font-family="Arial,sans-serif" font-size="7">Team lead</text>
-            <text x="151" y="37" fill="#303a53" font-family="Arial,sans-serif" font-size="15" font-weight="700">Good morning, Riya</text>
-            <text x="151" y="54" fill="#9299ac" font-family="Arial,sans-serif" font-size="8">Here’s what’s happening with your team today.</text>
-            <rect x="151" y="70" width="134" height="57" rx="9" fill="#fff" stroke="#e9eaf2"></rect>
-            <text x="164" y="88" fill="#9299ac" font-family="Arial,sans-serif" font-size="8">Tasks in progress</text>
-            <text x="164" y="113" fill="#29344d" font-family="Arial,sans-serif" font-size="21" font-weight="700">18</text>
-            <rect x="265" y="96" width="7" height="21" rx="3.5" fill="#dbd6ff"></rect>
-            <rect x="275" y="87" width="7" height="30" rx="3.5" fill="#9c90ef"></rect>
-            <rect x="243" y="107" width="7" height="10" rx="3.5" fill="#6758d6"></rect>
-            <rect x="298" y="70" width="134" height="57" rx="9" fill="#fff" stroke="#e9eaf2"></rect>
-            <text x="311" y="88" fill="#9299ac" font-family="Arial,sans-serif" font-size="8">Completed this week</text>
-            <text x="311" y="113" fill="#29344d" font-family="Arial,sans-serif" font-size="21" font-weight="700">24</text>
+            <circle cx="29" cy="322" r="10" fill="#dceee3"></circle>
+            <text x="29" y="325.5" fill="#2f5340" font-family="Arial,sans-serif" font-size="8" font-weight="700" text-anchor="middle">RS</text>
+            <text x="45" y="320" fill="#46584e" font-family="Arial,sans-serif" font-size="8" font-weight="700">Riya Sood</text>
+            <text x="45" y="330" fill="#6b8278" font-family="Arial,sans-serif" font-size="7">Team lead</text>
+            <text x="151" y="37" fill="#1a2e24" font-family="Arial,sans-serif" font-size="15" font-weight="700">Good morning, Riya</text>
+            <text x="151" y="54" fill="#6b8278" font-family="Arial,sans-serif" font-size="8">Here’s what’s happening with your team today.</text>
+            <rect x="151" y="70" width="134" height="57" rx="9" fill="#fff" stroke="#d8e8de"></rect>
+            <text x="164" y="88" fill="#6b8278" font-family="Arial,sans-serif" font-size="8">Tasks in progress</text>
+            <text x="164" y="113" fill="#1a2e24" font-family="Arial,sans-serif" font-size="21" font-weight="700">18</text>
+            <rect x="265" y="96" width="7" height="21" rx="3.5" fill="#dceee3"></rect>
+            <rect x="275" y="87" width="7" height="30" rx="3.5" fill="#8fbf9f"></rect>
+            <rect x="243" y="107" width="7" height="10" rx="3.5" fill="#5d9a7a"></rect>
+            <rect x="298" y="70" width="134" height="57" rx="9" fill="#fff" stroke="#d8e8de"></rect>
+            <text x="311" y="88" fill="#6b8278" font-family="Arial,sans-serif" font-size="8">Completed this week</text>
+            <text x="311" y="113" fill="#1a2e24" font-family="Arial,sans-serif" font-size="21" font-weight="700">24</text>
             <rect x="393" y="88" width="26" height="15" rx="7.5" fill="#e4f6ed"></rect>
             <text x="406" y="98.5" fill="#25815c" font-family="Arial,sans-serif" font-size="7" font-weight="700" text-anchor="middle">+18%</text>
-            <rect x="445" y="70" width="155" height="57" rx="9" fill="#fff" stroke="#e9eaf2"></rect>
-            <text x="458" y="88" fill="#9299ac" font-family="Arial,sans-serif" font-size="8">Team momentum</text>
-            <text x="458" y="113" fill="#29344d" font-family="Arial,sans-serif" font-size="21" font-weight="700">92%</text>
-            <rect x="548" y="92" width="37" height="7" rx="3.5" fill="#efedf9"></rect>
-            <rect x="548" y="92" width="32" height="7" rx="3.5" fill="#6c5dd7"></rect>
-            <rect x="151" y="141" width="278" height="188" rx="9" fill="#fff" stroke="#e9eaf2"></rect>
-            <text x="166" y="162" fill="#39435b" font-family="Arial,sans-serif" font-size="9" font-weight="700">Team activity</text>
-            <text x="166" y="175" fill="#9aa1b3" font-family="Arial,sans-serif" font-size="7">Task completion over the last 7 days</text>
-            <g stroke="#edf0f5" stroke-width="1">
+            <rect x="445" y="70" width="155" height="57" rx="9" fill="#fff" stroke="#d8e8de"></rect>
+            <text x="458" y="88" fill="#6b8278" font-family="Arial,sans-serif" font-size="8">Team momentum</text>
+            <text x="458" y="113" fill="#1a2e24" font-family="Arial,sans-serif" font-size="21" font-weight="700">92%</text>
+            <rect x="548" y="92" width="37" height="7" rx="3.5" fill="#f0f7f3"></rect>
+            <rect x="548" y="92" width="32" height="7" rx="3.5" fill="#5d9a7a"></rect>
+            <rect x="151" y="141" width="278" height="188" rx="9" fill="#fff" stroke="#d8e8de"></rect>
+            <text x="166" y="162" fill="#1a2e24" font-family="Arial,sans-serif" font-size="9" font-weight="700">Team activity</text>
+            <text x="166" y="175" fill="#6b8278" font-family="Arial,sans-serif" font-size="7">Task completion over the last 7 days</text>
+            <g stroke="#e5eee8" stroke-width="1">
               <path d="M168 198H412M168 230H412M168 262H412M168 294H412"></path>
               <path d="M168 188V304M229 188V304M290 188V304M351 188V304M412 188V304"></path>
             </g>
             <path d="M168 272 C191 267 198 247 222 253 S253 276 278 246 S312 252 337 228 S370 241 392 208 S405 212 412 198 V304 H168Z" fill="url(#visual-chart)"></path>
-            <path d="M168 272 C191 267 198 247 222 253 S253 276 278 246 S312 252 337 228 S370 241 392 208 S405 212 412 198" fill="none" stroke="#6c5dd7" stroke-linecap="round" stroke-width="2.5"></path>
-            <circle cx="392" cy="208" r="4" fill="#fff" stroke="#6c5dd7" stroke-width="2.5"></circle>
-            <rect x="441" y="141" width="159" height="188" rx="9" fill="#fff" stroke="#e9eaf2"></rect>
-            <text x="455" y="162" fill="#39435b" font-family="Arial,sans-serif" font-size="9" font-weight="700">Recent tasks</text>
+            <path d="M168 272 C191 267 198 247 222 253 S253 276 278 246 S312 252 337 228 S370 241 392 208 S405 212 412 198" fill="none" stroke="#5d9a7a" stroke-linecap="round" stroke-width="2.5"></path>
+            <circle cx="392" cy="208" r="4" fill="#fff" stroke="#5d9a7a" stroke-width="2.5"></circle>
+            <rect x="441" y="141" width="159" height="188" rx="9" fill="#fff" stroke="#d8e8de"></rect>
+            <text x="455" y="162" fill="#1a2e24" font-family="Arial,sans-serif" font-size="9" font-weight="700">Recent tasks</text>
             <g>
-              <circle cx="463" cy="190" r="8" fill="#eeeaff"></circle><path d="m460 190 2 2 4-4" fill="none" stroke="#6758d6" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
-              <text x="478" y="188" fill="#4a5368" font-family="Arial,sans-serif" font-size="7" font-weight="700">Onboarding flow</text><text x="478" y="198" fill="#9aa1b3" font-family="Arial,sans-serif" font-size="6">Design · Today</text>
+              <circle cx="463" cy="190" r="8" fill="#e8f8ef"></circle><path d="m460 190 2 2 4-4" fill="none" stroke="#2d8a5e" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+              <text x="478" y="188" fill="#46584e" font-family="Arial,sans-serif" font-size="7" font-weight="700">Onboarding flow</text><text x="478" y="198" fill="#6b8278" font-family="Arial,sans-serif" font-size="6">Design · Today</text>
               <path d="M455 211H586" stroke="#f0f1f5"></path>
               <circle cx="463" cy="229" r="8" fill="#e6f4f0"></circle><path d="m460 229 2 2 4-4" fill="none" stroke="#388b70" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
-              <text x="478" y="227" fill="#4a5368" font-family="Arial,sans-serif" font-size="7" font-weight="700">Review sprint notes</text><text x="478" y="237" fill="#9aa1b3" font-family="Arial,sans-serif" font-size="6">Planning · Tomorrow</text>
+              <text x="478" y="227" fill="#46584e" font-family="Arial,sans-serif" font-size="7" font-weight="700">Review sprint notes</text><text x="478" y="237" fill="#6b8278" font-family="Arial,sans-serif" font-size="6">Planning · Tomorrow</text>
               <path d="M455 250H586" stroke="#f0f1f5"></path>
               <circle cx="463" cy="268" r="8" fill="#fff1df"></circle><circle cx="463" cy="268" r="3" fill="#d59743"></circle>
-              <text x="478" y="266" fill="#4a5368" font-family="Arial,sans-serif" font-size="7" font-weight="700">Update team roadmap</text><text x="478" y="276" fill="#9aa1b3" font-family="Arial,sans-serif" font-size="6">Product · Friday</text>
+              <text x="478" y="266" fill="#46584e" font-family="Arial,sans-serif" font-size="7" font-weight="700">Update team roadmap</text><text x="478" y="276" fill="#6b8278" font-family="Arial,sans-serif" font-size="6">Product · Friday</text>
               <path d="M455 289H586" stroke="#f0f1f5"></path>
               <circle cx="461" cy="309" r="5" fill="#edb57e"></circle><circle cx="472" cy="309" r="5" fill="#7898df"></circle><circle cx="483" cy="309" r="5" fill="#75b997"></circle>
               <text x="494" y="312" fill="#9aa1b3" font-family="Arial,sans-serif" font-size="6">Your team is in sync</text>
