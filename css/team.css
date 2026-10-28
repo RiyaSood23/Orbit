@@ -1,14 +1,14 @@
 
 :root {
-  --bg: #f3f6f1;
+  --bg: #eef4f0;
   --card: #ffffff;
-  --sage: #6d9b7c;
-  --sage-dark: #3e684e;
-  --sage-light: #e7f0e6;
-  --sage-pale: #f2f7f0;
-  --ink: #24372b;
-  --muted: #819084;
-  --border: #dce6da;
+  --sage: #5d9a7a;
+  --sage-dark: #3d6b54;
+  --sage-light: #dceee3;
+  --sage-pale: #f0f7f3;
+  --ink: #1a2e24;
+  --muted: #6b8278;
+  --border: #d8e8de;
   --blue: #7da5c7;
   --blue-light: #e9f1f8;
   --peach: #d9a17b;
@@ -63,36 +63,38 @@ textarea:focus-visible {
 /* Sidebar */
 
 .sidebar {
-  width: 280px;
+  width: 240px;
   flex-shrink: 0;
   position: sticky;
   top: 0;
   height: 100vh;
-  padding: 30px 22px;
+  padding: 28px 16px;
   display: flex;
   flex-direction: column;
-  background: #18253f;
-  color: #fff;
+  background: #ffffff;
+  border-right: 1px solid var(--border);
+  color: var(--ink);
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 10px;
-  font-size: 24px;
+  padding: 4px 12px;
+  margin-bottom: 36px;
+  font-size: 22px;
   font-weight: 800;
-  letter-spacing: -0.8px;
-  color: #fff;
+  letter-spacing: -0.03em;
+  color: var(--sage-dark);
 }
 
 .brand-mark {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
   border-radius: 10px;
-  background: #7958dc;
+  background: linear-gradient(135deg, #6aab82, #4a7d62);
   color: white;
   font-size: 23px;
   font-weight: 700;
@@ -112,27 +114,27 @@ textarea:focus-visible {
 }
 
 .navigation {
-  display: grid;
-  gap: 8px;
-  margin-top: 68px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .navigation a {
   display: flex;
   align-items: center;
   min-height: 48px;
-  padding: 12px 18px;
-  color: #d3d9e7;
+  padding: 12px 16px;
+  color: var(--muted);
   font-size: 14px;
-  font-weight: 500;
-  border-radius: 11px;
+  font-weight: 600;
+  border-radius: 14px;
   transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
 .navigation a:hover,
 .navigation a.active {
-  color: #fff;
-  background: #2b3a59;
+  color: var(--sage-dark);
+  background: var(--sage-light);
 }
 
 .navigation a:hover {
@@ -140,7 +142,7 @@ textarea:focus-visible {
 }
 
 .navigation a:focus-visible {
-  outline-color: #b7a5ff;
+  outline-color: var(--sage);
   outline-offset: 3px;
 }
 
@@ -229,8 +231,33 @@ textarea:focus-visible {
 
 /* Main content and header */
 
+.sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-footer a {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sidebar-footer a:hover {
+  color: var(--sage-dark);
+  background: var(--sage-light);
+}
+
 .main-content {
-  width: calc(100% - 280px);
+  width: calc(100% - 240px);
   max-width: 1550px;
   min-width: 0;
   margin: 0 auto;
@@ -1537,11 +1564,11 @@ dialog select:focus {
   }
 
   .sidebar {
-    width: 250px;
+    width: 240px;
   }
 
   .main-content {
-    width: calc(100% - 250px);
+    width: calc(100% - 240px);
   }
 
   .summary-grid {
@@ -1577,12 +1604,12 @@ dialog select:focus {
 
 @media (max-width: 900px) {
   .sidebar {
-    width: 210px;
-    padding: 24px 14px;
+    width: 240px;
+    padding: 28px 16px;
   }
 
   .main-content {
-    width: calc(100% - 210px);
+    width: calc(100% - 240px);
     padding: 20px 15px;
   }
 

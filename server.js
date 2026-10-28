@@ -387,15 +387,6 @@ async function serveStatic(request, response, pathname) {
     return;
   }
 
-  if (pathname === "/" || pathname === "/index.html") {
-    const sessionId = parseCookies(request.headers.cookie).get("orbit_session");
-    if (sessionId) {
-      sessions.delete(sessionId);
-      const secure = request.socket.encrypted ? "; Secure" : "";
-      response.setHeader("Set-Cookie", `orbit_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`);
-    }
-  }
-
   let filePath;
   try {
     filePath = getFilePath(request.url);

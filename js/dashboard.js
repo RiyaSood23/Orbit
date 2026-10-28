@@ -14,13 +14,25 @@
     greetingEl.textContent = greeting;
   }
 
-  /* ── Load user name from login (localStorage) or default ── */
-  function setUserName() {
+  /* ── Load the signed-in user from the local server ── */
+  async function setUserName() {
     const nameEl = document.getElementById("user-name");
     if (!nameEl) return;
 
-    const stored = localStorage.getItem("orbit_user_name");
-    nameEl.textContent = stored || "Team Lead";
+    try {
+      const response = await fetch("/api/auth/session", { credentials: "same-origin" });
+      const result = await response.json();
+
+      if (!response.ok || !result.user) {
+        window.location.replace("index.html");
+        return;
+      }
+
+      const name = typeof result.user.name === "string" ? result.user.name.trim() : "";
+      nameEl.textContent = name || "Team Lead";
+    } catch {
+      window.location.replace("index.html");
+    }
   }
 
   /* ── Animate progress bars on load ── */
@@ -366,7 +378,18 @@
     const addTeamButton = document.getElementById("add-team-btn");
     if (addTeamButton) {
       addTeamButton.addEventListener("click", function () {
-        showToast("🚀 Add Team — coming soon in CE-2!");
+        window.location.assign("team.html");
+      });
+    }
+
+    const searchInput = document.querySelector(".search-bar input");
+    if (searchInput) {
+      searchInput.addEventListener("input", function () {
+        const query = searchInput.value.trim().toLowerCase();
+        document.querySelectorAll(".team-card").forEach(function (card) {
+          const matches = !query || card.textContent.toLowerCase().includes(query);
+          card.hidden = !matches;
+        });
       });
     }
 

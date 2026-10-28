@@ -1,0 +1,108 @@
+/* Shared panel: use exactly the dashboard sidebar on every page. */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+  min-height: 100vh;
+  height: 100vh;
+  padding: 28px 16px;
+  background: #ffffff;
+  border-right: 1px solid #d8e8de;
+  position: sticky;
+  top: 0;
+  flex-shrink: 0;
+  color: #1a2e24;
+}
+
+.sidebar .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px;
+  margin: 0 0 36px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #3d6b54;
+}
+
+.sidebar .brand-mark {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(135deg, #6aab82, #4a7d62);
+  font-size: 18px;
+}
+
+.sidebar .navigation {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+
+.sidebar .navigation a,
+.sidebar .sidebar-footer a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #6b8278;
+  background: transparent;
+  transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar .navigation a:hover,
+.sidebar .sidebar-footer a:hover {
+  color: #3d6b54;
+  background: #f0f7f3;
+  transform: none;
+}
+
+.sidebar .navigation a.active {
+  color: #2f5340;
+  background: #dceee3;
+  box-shadow: inset 0 0 0 1px #b8d4c4;
+}
+
+.sidebar .navigation a:focus-visible,
+.sidebar .sidebar-footer a:focus-visible {
+  outline: 2px solid #5d9a7a;
+  outline-offset: 3px;
+}
+
+.sidebar .nav-icon {
+  display: inline-block;
+  width: 16px;
+  font-size: 16px;
+  text-align: center;
+}
+
+.sidebar .sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 0 0;
+  border-top: 1px solid #d8e8de;
+}
+
+.sidebar .sidebar-footer a.logout-link {
+  color: #6b8278;
+}
+
+@media (max-width: 560px) {
+  .sidebar {
+    width: 240px;
+    height: 100vh;
+    position: sticky;
+  }
+}

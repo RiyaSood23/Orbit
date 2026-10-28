@@ -12,6 +12,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="css/team.css">
+  <link rel="stylesheet" href="css/sidebar.css">
+  <script src="js/navigation.js" defer></script>
   <script src="js/team.js" defer></script>
 </head>
 
@@ -20,16 +22,25 @@
 
     <aside class="sidebar">
       <a class="brand" href="dashboard.html" aria-label="Orbit home">
-        <span class="brand-mark" aria-hidden="true">O</span>
+        <span class="brand-mark">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+            <circle cx="12" cy="12" r="3" fill="currentColor"/>
+          </svg>
+        </span>
         <span>Orbit</span>
       </a>
-
       <nav class="navigation" aria-label="Main navigation">
         <a href="dashboard.html">Dashboard</a>
         <a class="active" href="team.html" aria-current="page">Teams</a>
         <a href="create-task.html">Create Task</a>
         <a href="approvals.html">Approvals</a>
       </nav>
+      <div class="sidebar-footer">
+        <a href="#">Profile</a>
+        <a href="#">Settings</a>
+        <a class="logout-link" href="index.html">Log out</a>
+      </div>
     </aside>
 
     <main class="main-content">

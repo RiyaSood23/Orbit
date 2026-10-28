@@ -5,12 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Approvals | Orbit</title>
   <link rel="stylesheet" href="css/approvals.css">
+  <link rel="stylesheet" href="css/sidebar.css">
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar">
       <a class="brand" href="dashboard.html" aria-label="Orbit home">
-        <span class="brand-mark">O</span>
+        <span class="brand-mark">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+            <circle cx="12" cy="12" r="3" fill="currentColor"/>
+          </svg>
+        </span>
         <span>Orbit</span>
       </a>
       <nav class="navigation" aria-label="Main navigation">
@@ -19,7 +25,11 @@
         <a href="create-task.html">Create Task</a>
         <a class="active" href="approvals.html" aria-current="page">Approvals</a>
       </nav>
-      <a class="logout-link" href="index.html">Log out</a>
+      <div class="sidebar-footer">
+        <a href="#">Profile</a>
+        <a href="#">Settings</a>
+        <a class="logout-link" href="index.html">Log out</a>
+      </div>
     </aside>
 
     <main class="main-content">
@@ -146,6 +156,7 @@
       </div>
     </form>
   </dialog>
+  <script src="js/navigation.js"></script>
   <script src="js/approvals.js"></script>
 </body>
 </html>

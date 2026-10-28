@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/sidebar.css">
 </head>
 <body>
   <div class="app-shell">
@@ -24,24 +25,16 @@
       </a>
 
       <nav class="navigation" aria-label="Main navigation">
-        <a class="active" href="dashboard.html" aria-current="page">
-          <span class="nav-icon">📊</span> Dashboard
-        </a>
-        <a href="team.html">
-          <span class="nav-icon">👥</span> Teams
-        </a>
-        <a href="create-task.html">
-          <span class="nav-icon">✅</span> Create Task
-        </a>
-        <a href="approvals.html">
-          <span class="nav-icon">📋</span> Approvals
-        </a>
+        <a class="active" href="dashboard.html" aria-current="page">Dashboard</a>
+        <a href="team.html">Teams</a>
+        <a href="create-task.html">Create Task</a>
+        <a href="approvals.html">Approvals</a>
       </nav>
 
       <div class="sidebar-footer">
-        <a href="#"><span class="nav-icon">👤</span> Profile</a>
-        <a href="#"><span class="nav-icon">⚙️</span> Settings</a>
-        <a class="logout-link" href="index.html"><span class="nav-icon">🚪</span> Log out</a>
+        <a href="#">Profile</a>
+        <a href="#">Settings</a>
+        <a class="logout-link" href="index.html">Log out</a>
       </div>
     </aside>
 
@@ -62,7 +55,7 @@
         <div class="header-actions animate-in" style="--delay: 0.2s">
           <div class="search-bar">
             <input type="search" placeholder="Search teams, tasks, members…" aria-label="Search">
-            <button type="button" class="search-btn" aria-label="Search">🔍</button>
+            <button type="button" class="search-btn" aria-label="Search"></button>
           </div>
           <button type="button" class="icon-btn notification-btn" aria-label="Notifications">
             🔔
@@ -229,7 +222,7 @@
           <section class="panel org-overview animate-in" style="--delay: 0.4s" aria-labelledby="org-title">
             <div class="panel-header">
               <div>
-                <h2 id="org-title">Organisation Overview 📈</h2>
+                <h2 id="org-title">Organisation Overview </h2>
                 <p class="section-sub" id="org-insight">Click a metric or chart slice to explore the pipeline.</p>
               </div>
               <div class="org-controls">
@@ -322,7 +315,7 @@
           <!-- Deadlines -->
           <section class="panel deadlines-panel animate-in" style="--delay: 0.45s" aria-labelledby="deadlines-title">
             <div class="panel-header">
-              <h2 id="deadlines-title">Upcoming Deadlines ⏰</h2>
+              <h2 id="deadlines-title">Upcoming Deadlines </h2>
               <button type="button" class="filter-chip">Filter</button>
             </div>
             <ul class="deadline-list">
@@ -364,7 +357,7 @@
           <!-- Top performers -->
           <section class="panel performers-panel animate-in" style="--delay: 0.5s" aria-labelledby="performers-title">
             <div class="panel-header">
-              <h2 id="performers-title">Top Performers 🏆</h2>
+              <h2 id="performers-title">Top Performers </h2>
               <span class="panel-tag">This month</span>
             </div>
             <ol class="performer-list">
@@ -401,7 +394,7 @@
           <!-- Events & checklist -->
           <section class="panel events-panel animate-in" style="--delay: 0.55s" aria-labelledby="events-title">
             <div class="panel-header">
-              <h2 id="events-title">Upcoming Event 🗓️</h2>
+              <h2 id="events-title">Upcoming Event </h2>
             </div>
 
             <div class="event-card">
@@ -449,6 +442,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="js/navigation.js"></script>
   <script src="js/dashboard.js"></script>
 </body>
 </html>

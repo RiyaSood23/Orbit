@@ -1,7 +1,6 @@
 const taskForm = document.querySelector("#task-form");
 const formFeedback = document.querySelector("#form-feedback");
 const taskSubmitButton = taskForm.querySelector('button[type="submit"]');
-const logoutLink = document.querySelector("#logout-link");
 const userAvatar = document.querySelector("#user-avatar");
 const dueDateInput = document.querySelector("#due-date");
 const teamInput = document.querySelector("#team");
@@ -148,24 +147,6 @@ assignTaskButton.addEventListener("click", async () => {
 taskForm.addEventListener("reset", () => {
   showTaskFeedback("");
   window.setTimeout(updateTeamMembers, 0);
-});
-
-logoutLink.addEventListener("click", async (event) => {
-  event.preventDefault();
-  logoutLink.setAttribute("aria-disabled", "true");
-  try {
-    const response = await fetch("/api/auth/logout", {
-      method: "POST",
-      credentials: "same-origin",
-    });
-    if (!response.ok) {
-      throw new Error("Could not sign out. Please try again.");
-    }
-    window.location.assign("index.html");
-  } catch (error) {
-    logoutLink.removeAttribute("aria-disabled");
-    showTaskFeedback(error instanceof Error ? error.message : "Could not sign out.", true);
-  }
 });
 
 getSession()
