@@ -13,7 +13,7 @@
           credentials: "same-origin",
         });
         if (!response.ok) throw new Error("Could not sign out.");
-        window.location.assign("index.html");
+        window.location.assign("landing.html");
       } catch {
         logoutLink.removeAttribute("aria-disabled");
       }

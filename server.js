@@ -54,7 +54,7 @@ function sendError(response, status, message) {
 
 function getFilePath(requestUrl) {
   const requestedPath = decodeURIComponent(new URL(requestUrl, "http://localhost").pathname);
-  const relativePath = requestedPath === "/" ? "index.html" : requestedPath.slice(1);
+  const relativePath = requestedPath === "/" ? "landing.html" : requestedPath.slice(1);
   const filePath = path.resolve(rootDirectory, relativePath);
   const privateDataPath = path.resolve(dataDirectory);
   const rootRelativePath = path.relative(rootDirectory, filePath);

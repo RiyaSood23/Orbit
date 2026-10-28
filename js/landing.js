@@ -1,6 +1,16 @@
 const loginButton = document.querySelector(".login-button");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
+fetch("/api/auth/session", { credentials: "same-origin" })
+  .then((response) => response.json())
+  .then((result) => {
+    if (loginButton && result.user) {
+      loginButton.setAttribute("href", "dashboard.html");
+      loginButton.setAttribute("aria-label", "Open dashboard");
+    }
+  })
+  .catch(() => {});
+
 if (loginButton && !reduceMotion.matches) {
   loginButton.addEventListener("pointermove", (event) => {
     const bounds = loginButton.getBoundingClientRect();
