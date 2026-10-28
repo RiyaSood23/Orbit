@@ -32,7 +32,7 @@ function addFeedbackMessage(text) {
   message.className = "message";
   message.innerHTML = `
     <span class="avatar avatar-blue">V</span>
-    <div><div class="message-meta"><strong>Vaibhavi</strong><time>Just now</time></div><p></p></div>
+    <div><div class="message-meta"><strong>Rohan Kapoor</strong><time>Just now</time></div><p></p></div>
   `;
   message.querySelector("p").textContent = text;
   conversation.append(message);
@@ -56,7 +56,7 @@ function updateRole() {
     control.hidden = !isTeamLead;
   });
   leadReviewButton.hidden = isTeamLead;
-  toolbarLabel.textContent = isTeamLead ? "Team Lead actions" : "Reviewer actions";
+  toolbarLabel.textContent = isTeamLead ? "Lead actions" : "Reviewer actions";
 }
 
 document.querySelector("#approve-button").addEventListener("click", () => {
@@ -121,13 +121,13 @@ leadReviewForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const feedback = document.querySelector("#lead-review-feedback").value.trim();
   if (!feedback) {
-    document.querySelector("#lead-review-error").textContent = "Please write a review request for Riya.";
+    document.querySelector("#lead-review-error").textContent = "Please write a review request for Aarav.";
     return;
   }
 
-  addFeedbackMessage(`Review request sent to Riya: ${feedback}`);
+  addFeedbackMessage(`Review request sent to Aarav: ${feedback}`);
   const activity = document.createElement("li");
-  activity.innerHTML = `<span class="timeline-dot dot-purple"></span><div><strong>Vaibhavi asked Riya to review the entire task</strong><time>Just now</time><p></p></div>`;
+  activity.innerHTML = `<span class="timeline-dot dot-purple"></span><div><strong>Rohan Kapoor asked Aarav to review the entire task</strong><time>Just now</time><p></p></div>`;
   activity.querySelector("p").textContent = feedback;
   activityList.prepend(activity);
   closeReviewDialog(leadReviewDialog);

@@ -28,8 +28,7 @@
         return;
       }
 
-      const name = typeof result.user.name === "string" ? result.user.name.trim() : "";
-      nameEl.textContent = name || "Team Lead";
+      nameEl.textContent = "Lead";
     } catch {
       window.location.replace("index.html");
     }

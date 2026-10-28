@@ -15,8 +15,11 @@ const scrypt = promisify(crypto.scrypt);
 const sessions = new Map();
 let storeQueue = Promise.resolve();
 const teamRoster = {
-  Design: ["Arjun Mehta", "Nisha Kapoor"],
-  Product: ["Riya Sood"],
+  Design: ["Ishita Verma", "Ananya Singh"],
+  Marketing: ["Ananya Singh", "Aarav Sharma"],
+  Organising: ["Aarav Sharma", "Rohan Kapoor"],
+  Technical: ["Rohan Kapoor", "Aarav Sharma"],
+  Management: ["Aarav Sharma", "Ishita Verma"],
 };
 
 const mimeTypes = {

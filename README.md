@@ -6,10 +6,10 @@ For CE-1, the project is being developed as a static HTML, CSS and JavaScript im
 
 ## Team members
 
-- Riya
-- Meghna
-- Vaibhavi
-- Vanshita
+- Aarav Sharma
+- Ishita Verma
+- Rohan Kapoor
+- Ananya Singh
 
 ## Project phases
 

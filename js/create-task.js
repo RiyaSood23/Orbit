@@ -9,8 +9,11 @@ const memberHint = document.querySelector("#member-hint");
 const taskPreviewDialog = document.querySelector("#task-preview-dialog");
 const assignTaskButton = document.querySelector("#assign-task-button");
 const teamMembers = {
-  Design: ["Arjun Mehta", "Nisha Kapoor"],
-  Product: ["Riya Sood"],
+  Design: ["Ishita Verma", "Ananya Singh"],
+  Marketing: ["Ananya Singh", "Aarav Sharma"],
+  Organising: ["Aarav Sharma", "Rohan Kapoor"],
+  Technical: ["Rohan Kapoor", "Aarav Sharma"],
+  Management: ["Aarav Sharma", "Ishita Verma"],
 };
 
 function showTaskFeedback(message, isError = false) {

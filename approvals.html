@@ -42,8 +42,8 @@
         <div class="current-user">
           <label for="role-select">Viewing as</label>
           <select id="role-select">
-            <option value="reviewer">Vaibhavi - Reviewer</option>
-            <option value="team-lead">Riya - Team Lead</option>
+            <option value="reviewer">Ishita - Reviewer</option>
+            <option value="team-lead">Aarav - Lead</option>
           </select>
         </div>
       </header>
@@ -53,7 +53,7 @@
           <span class="toolbar-label" id="toolbar-label">Reviewer actions</span>
           <div class="action-buttons">
             <button class="button button-warning" id="changes-button" type="button">Request Changes</button>
-            <button class="button button-primary" id="lead-review-button" type="button">Ask Team Lead to Review</button>
+            <button class="button button-primary" id="lead-review-button" type="button">Ask Lead to Review</button>
             <button class="button button-success lead-only" id="approve-button" type="button">Approve</button>
             <button class="button button-danger lead-only" id="reject-button" type="button">Reject</button>
           </div>
@@ -69,7 +69,7 @@
         </div>
 
         <div class="task-details">
-          <div><span class="detail-label">Assigned members</span><strong>Vanshita and Meghna</strong></div>
+          <div><span class="detail-label">Assigned members</span><strong>Ishita Verma and Ananya Singh</strong></div>
           <div><span class="detail-label">Due date</span><strong>28 October 2026</strong></div>
           <div><span class="detail-label">Submitted</span><strong>26 October 2026</strong></div>
           <div><span class="detail-label">Submission</span><a href="#" class="submission-link" id="submission-link">onboarding-flow.fig</a></div>
@@ -82,26 +82,26 @@
               <span>Latest updates</span>
             </div>
             <ol class="timeline" id="activity-list">
-              <li><span class="timeline-dot dot-blue"></span><div><strong>Vanshita submitted the work</strong><time>26 October 2026, 4:18 PM</time><p>Added the onboarding screens and developer handoff notes.</p></div></li>
-              <li><span class="timeline-dot dot-purple"></span><div><strong>Vaibhavi approved the preliminary review</strong><time>26 October 2026, 5:02 PM</time><p>The reviewer completed the initial check and approved it to move forward.</p></div></li>
-              <li><span class="timeline-dot dot-green"></span><div><strong>Task moved forward for Riya's review</strong><time>26 October 2026, 5:10 PM</time><p>The submission is ready for the Team Lead's final decision.</p></div></li>
+              <li><span class="timeline-dot dot-blue"></span><div><strong>Ishita Verma submitted the work</strong><time>26 October 2026, 4:18 PM</time><p>Added the onboarding screens and developer handoff notes.</p></div></li>
+              <li><span class="timeline-dot dot-purple"></span><div><strong>Rohan Kapoor approved the preliminary review</strong><time>26 October 2026, 5:02 PM</time><p>The reviewer completed the initial check and approved it to move forward.</p></div></li>
+              <li><span class="timeline-dot dot-green"></span><div><strong>Task moved forward for Aarav's review</strong><time>26 October 2026, 5:10 PM</time><p>The submission is ready for the Lead's final decision.</p></div></li>
             </ol>
           </section>
 
           <section class="collaborators-section" aria-labelledby="collaborators-title">
             <div class="section-heading"><h3 id="collaborators-title">Collaborators</h3></div>
-            <div class="collaborator"><span class="avatar avatar-orange">V</span><div><strong>Vanshita</strong><span>Assignee</span></div></div>
-            <div class="collaborator"><span class="avatar avatar-purple">M</span><div><strong>Meghna</strong><span>Assignee</span></div></div>
-            <div class="collaborator"><span class="avatar avatar-blue">V</span><div><strong>Vaibhavi</strong><span>Reviewer</span></div></div>
-            <div class="collaborator"><span class="avatar avatar-green">R</span><div><strong>Riya</strong><span>Team Lead</span></div></div>
+            <div class="collaborator"><span class="avatar avatar-orange">IV</span><div><strong>Ishita Verma</strong><span>Assignee</span></div></div>
+                        <div class="collaborator"><span class="avatar avatar-purple">AS</span><div><strong>Ananya Singh</strong><span>Assignee</span></div></div>
+                        <div class="collaborator"><span class="avatar avatar-blue">RK</span><div><strong>Rohan Kapoor</strong><span>Reviewer</span></div></div>
+                        <div class="collaborator"><span class="avatar avatar-green">ASH</span><div><strong>Aarav Sharma</strong><span>Lead</span></div></div>
           </section>
         </div>
 
         <section class="comments-section" aria-labelledby="comments-title">
           <div class="section-heading"><h3 id="comments-title">Comments and feedback</h3><span id="comment-count">3 messages</span></div>
           <div class="conversation" id="conversation">
-            <article class="message"><span class="avatar avatar-orange">V</span><div><div class="message-meta"><strong>Vanshita</strong><time>Yesterday</time></div><p>I've added the empty-state examples and updated the handoff notes.</p></div></article>
-            <article class="message"><span class="avatar avatar-blue">V</span><div><div class="message-meta"><strong>Vaibhavi</strong><time>Yesterday</time></div><p>I approved the preliminary review and moved this task forward for Riya's Team Lead review.</p></div></article>
+            <article class="message"><span class="avatar avatar-orange">V</span><div><div class="message-meta"><strong>Ishita Verma</strong><time>Yesterday</time></div><p>I've added the empty-state examples and updated the handoff notes.</p></div></article>
+            <article class="message"><span class="avatar avatar-blue">V</span><div><div class="message-meta"><strong>Rohan Kapoor</strong><time>Yesterday</time></div><p>I approved the preliminary review and moved this task forward for Aarav's Lead review.</p></div></article>
           </div>
           <form class="comment-form" id="comment-form">
             <label for="comment-input">Add a comment</label>
@@ -130,10 +130,10 @@
     <form method="dialog" class="review-dialog-form" id="lead-review-form">
       <button class="dialog-close" type="button" aria-label="Close team lead review dialog">×</button>
       <p class="eyebrow">Reviewer request</p>
-      <h2 id="lead-review-dialog-title">Ask Riya to review the entire task</h2>
-      <p class="dialog-description">Write a summary for Riya, the Team Lead, explaining what should be reviewed before a final decision.</p>
+      <h2 id="lead-review-dialog-title">Ask Aarav Sharma to review the entire task</h2>
+      <p class="dialog-description">Write a summary for Aarav Sharma, the Lead, explaining what should be reviewed before a final decision.</p>
       <label for="lead-review-feedback">Review request</label>
-      <textarea id="lead-review-feedback" rows="5" placeholder="Summarise the submission and what the Team Lead should check..." required></textarea>
+      <textarea id="lead-review-feedback" rows="5" placeholder="Summarise the submission and what the Lead should check..." required></textarea>
       <p class="dialog-error" id="lead-review-error" role="alert"></p>
       <div class="dialog-actions">
         <button class="button button-secondary" type="button" data-close-dialog>Cancel</button>

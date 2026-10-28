@@ -24,19 +24,6 @@ const initialState = {
       lastActivityRank: 12
     },
     {
-      id: "m2",
-      name: "Meghna Rana",
-      initials: "MR",
-      role: "Frontend Developer",
-      skills: ["HTML", "CSS", "JavaScript"],
-      points: 315,
-      completed: 9,
-      progress: 76,
-      active: true,
-      lastActivity: "35 min ago",
-      lastActivityRank: 35
-    },
-    {
       id: "m3",
       name: "Ishita Verma",
       initials: "IV",
@@ -66,7 +53,7 @@ const initialState = {
       id: "m5",
       name: "Ananya Singh",
       initials: "AN",
-      role: "Content & Operations",
+      role: "Marketing & Organising",
       skills: ["Writing", "Testing"],
       points: 195,
       completed: 5,
@@ -82,7 +69,7 @@ const initialState = {
       id: "t1",
       title: "Team dashboard UI",
       description: "Build a responsive team dashboard and member progress view.",
-      assignee: "m2",
+      assignee: "m4",
       priority: "High",
       deadline: "2026-10-29",
       points: 100,
@@ -178,7 +165,7 @@ const initialState = {
     {
       id: "p1",
       name: "Orbit Launch",
-      description: "Product planning, team coordination and launch readiness.",
+      description: "Management planning, team coordination and launch readiness.",
       progress: 82
     },
     {
@@ -198,7 +185,7 @@ const initialState = {
   activities: [
     {
       id: "a1",
-      member: "Meghna Rana",
+      member: "Ananya Singh",
       action: "updated the Team dashboard UI",
       time: "35 min ago",
       icon: "↗"
