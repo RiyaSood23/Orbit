@@ -1,19 +1,23 @@
+require("dotenv").config();
+
+const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const fs = require("fs");
 const http = require("http");
+const jwt = require("jsonwebtoken");
 const path = require("path");
+const { MongoClient } = require("mongodb");
 const { promisify } = require("util");
 
 const port = Number(process.env.PORT) || 3000;
 const rootDirectory = __dirname;
-const dataDirectory = path.resolve(process.env.ORBIT_DATA_DIR || path.join(rootDirectory, ".orbit-data"));
-const storePath = path.join(dataDirectory, "store.json");
+const mongoUri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017";
+const mongoDbName = process.env.MONGODB_DB || "Orbit";
+const jwtSecret =
+  process.env.JWT_SECRET ||
+  (process.env.NODE_ENV === "production" ? null : "orbit-development-secret-change-in-production");
 const maxRequestBytes = 16 * 1024;
-const sessionDurationMs = 12 * 60 * 60 * 1000;
-const rememberedSessionDurationMs = 30 * 24 * 60 * 60 * 1000;
 const scrypt = promisify(crypto.scrypt);
-const sessions = new Map();
-let storeQueue = Promise.resolve();
 const teamRoster = {
   Design: ["Ishita Verma", "Ananya Singh"],
   Marketing: ["Ananya Singh", "Aarav Sharma"],
@@ -33,6 +37,10 @@ const mimeTypes = {
   ".svg": "image/svg+xml",
   ".ico": "image/x-icon",
 };
+
+let db;
+let usersCollection;
+let tasksCollection;
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -59,24 +67,12 @@ function getFilePath(requestUrl) {
   const requestedPath = decodeURIComponent(new URL(requestUrl, "http://localhost").pathname);
   const relativePath = requestedPath === "/" ? "landing.html" : requestedPath.slice(1);
   const filePath = path.resolve(rootDirectory, relativePath);
-  const privateDataPath = path.resolve(dataDirectory);
   const rootRelativePath = path.relative(rootDirectory, filePath);
-  const privateRelativePath = path.relative(privateDataPath, filePath);
   const outsideRoot =
     rootRelativePath === ".." ||
     rootRelativePath.startsWith(`..${path.sep}`) ||
     path.isAbsolute(rootRelativePath);
-  const insidePrivateData =
-    privateRelativePath === "" ||
-    (privateRelativePath !== ".." &&
-      !privateRelativePath.startsWith(`..${path.sep}`) &&
-      !path.isAbsolute(privateRelativePath));
-
-  if (outsideRoot || insidePrivateData) {
-    return null;
-  }
-
-  return filePath;
+  return outsideRoot ? null : filePath;
 }
 
 function readJsonBody(request) {
@@ -85,10 +81,7 @@ function readJsonBody(request) {
     let settled = false;
 
     request.on("data", (chunk) => {
-      if (settled) {
-        return;
-      }
-
+      if (settled) return;
       body += chunk;
       if (Buffer.byteLength(body) > maxRequestBytes) {
         settled = true;
@@ -98,16 +91,12 @@ function readJsonBody(request) {
     });
 
     request.on("end", () => {
-      if (settled) {
-        return;
-      }
-
+      if (settled) return;
       if (!request.headers["content-type"]?.toLowerCase().startsWith("application/json")) {
         settled = true;
         reject(new HttpError(415, "Content-Type must be application/json."));
         return;
       }
-
       try {
         const value = JSON.parse(body);
         if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -140,80 +129,89 @@ function parseCookies(header = "") {
   }, new Map());
 }
 
-function getAuthenticatedUser(request, store) {
-  const sessionId = parseCookies(request.headers.cookie).get("orbit_session");
-  if (!sessionId) {
-    return null;
-  }
-
-  const session = sessions.get(sessionId);
-  if (!session || session.expiresAt <= Date.now()) {
-    sessions.delete(sessionId);
-    return null;
-  }
-
-  const user = store.users.find((item) => item.id === session.userId);
-  if (!user) {
-    sessions.delete(sessionId);
-    return null;
-  }
-
-  return user;
-}
-
 function publicUser(user) {
-  return { id: user.id, name: user.name, email: user.email };
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role || "member",
+  };
 }
 
-function localDateString(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function setSessionCookie(request, response, sessionId, durationMs) {
-  const maxAge = Math.floor(durationMs / 1000);
+function setAuthCookie(request, response, token, remember) {
+  const maxAge = remember ? 30 * 24 * 60 * 60 : 12 * 60 * 60;
   const secure = request.socket.encrypted ? "; Secure" : "";
   response.setHeader(
     "Set-Cookie",
-    `orbit_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`
+    `orbit_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`
   );
 }
 
-function createSession(request, response, user, remember) {
-  for (const [sessionId, session] of sessions) {
-    if (session.expiresAt <= Date.now()) {
-      sessions.delete(sessionId);
+function createToken(user, remember) {
+  return jwt.sign(
+    { sub: user.id, role: user.role || "member", email: user.email },
+    jwtSecret,
+    { expiresIn: remember ? "30d" : "12h" }
+  );
+}
+
+async function authenticate(request) {
+  const authorization = request.headers.authorization || "";
+  const bearerToken = authorization.startsWith("Bearer ") ? authorization.slice(7) : null;
+  const cookieToken = parseCookies(request.headers.cookie).get("orbit_token");
+  const token = bearerToken || cookieToken;
+  if (!token) return null;
+
+  try {
+    const payload = jwt.verify(token, jwtSecret);
+    const user = await usersCollection.findOne({ id: payload.sub });
+    return user || null;
+  } catch {
+    return null;
+  }
+}
+
+function requireAuth(handler) {
+  return async (request, response, ...args) => {
+    const user = await authenticate(request);
+    if (!user) throw new HttpError(401, "Authentication required.");
+    return handler(request, response, user, ...args);
+  };
+}
+
+function requireRole(...roles) {
+  return (handler) => requireAuth(async (request, response, user) => {
+    if (!roles.includes(user.role || "member")) {
+      throw new HttpError(403, "You do not have permission to perform this action.");
     }
-  }
-  const sessionId = crypto.randomBytes(32).toString("hex");
-  const durationMs = remember ? rememberedSessionDurationMs : sessionDurationMs;
-  sessions.set(sessionId, { userId: user.id, expiresAt: Date.now() + durationMs });
-  setSessionCookie(request, response, sessionId, durationMs);
-}
-
-async function loadStore() {
-  const contents = await fs.promises.readFile(storePath, "utf8");
-  const store = JSON.parse(contents);
-  if (!store || !Array.isArray(store.users) || !Array.isArray(store.tasks)) {
-    throw new Error("Orbit data store has an invalid structure.");
-  }
-  return store;
-}
-
-async function updateStore(update) {
-  const operation = storeQueue.then(async () => {
-    const store = await loadStore();
-    const result = await update(store);
-    const temporaryPath = path.join(dataDirectory, `store-${crypto.randomUUID()}.tmp`);
-    await fs.promises.writeFile(temporaryPath, JSON.stringify(store), { mode: 0o600 });
-    await fs.promises.rename(temporaryPath, storePath);
-    return result;
+    return handler(request, response, user);
   });
+}
 
-  storeQueue = operation.then(() => undefined, () => undefined);
-  return operation;
+async function migrateLegacyStore() {
+  const legacyPath = path.join(__dirname, ".orbit-data", "store.json");
+  if (!fs.existsSync(legacyPath)) return;
+
+  try {
+    const legacy = JSON.parse(await fs.promises.readFile(legacyPath, "utf8"));
+    if (!legacy || !Array.isArray(legacy.users)) return;
+
+    if (await usersCollection.countDocuments() === 0 && legacy.users.length > 0) {
+      await usersCollection.insertMany(
+        legacy.users.map((user, index) => ({
+          ...user,
+          role: index === 0 ? "admin" : "member",
+          passwordFormat: "scrypt",
+          updatedAt: new Date().toISOString(),
+        }))
+      );
+    }
+    if (await tasksCollection.countDocuments() === 0 && Array.isArray(legacy.tasks) && legacy.tasks.length > 0) {
+      await tasksCollection.insertMany(legacy.tasks);
+    }
+  } catch (error) {
+    console.warn("Legacy store migration skipped:", error.message);
+  }
 }
 
 async function createAccount(request, response) {
@@ -231,47 +229,133 @@ async function createAccount(request, response) {
   if (password.length < 10 || password.length > 128) {
     throw new HttpError(400, "Password must be between 10 and 128 characters.");
   }
+  if (await usersCollection.findOne({ email })) {
+    throw new HttpError(409, "An account with this email already exists. Sign in instead.");
+  }
 
-  const salt = crypto.randomBytes(16);
-  const passwordHash = await scrypt(password, salt, 64);
+  const role = (await usersCollection.countDocuments()) === 0 ? "admin" : "member";
   const user = {
     id: crypto.randomUUID(),
     name,
     email,
-    salt: salt.toString("hex"),
-    passwordHash: passwordHash.toString("hex"),
+    passwordHash: await bcrypt.hash(password, 12),
+    passwordFormat: "bcrypt",
+    role,
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
+  await usersCollection.insertOne(user);
 
-  await updateStore((store) => {
-    if (store.users.some((existingUser) => existingUser.email === email)) {
-      throw new HttpError(409, "An account with this email already exists. Sign in instead.");
-    }
-    store.users.push(user);
-  });
+  const remember = body.remember === true;
+  setAuthCookie(request, response, createToken(user, remember), remember);
+  sendJson(response, 201, { token: createToken(user, false), user: publicUser(user) });
+}
 
-  createSession(request, response, user, false);
-  sendJson(response, 201, { user: publicUser(user) });
+async function verifyLegacyPassword(password, user) {
+  if (!user.salt || !user.passwordHash) return false;
+  const candidateHash = await scrypt(password, Buffer.from(user.salt, "hex"), 64);
+  const storedHash = Buffer.from(user.passwordHash, "hex");
+  return candidateHash.length === storedHash.length &&
+    crypto.timingSafeEqual(candidateHash, storedHash);
 }
 
 async function login(request, response) {
   const body = await readJsonBody(request);
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = typeof body.password === "string" ? body.password : "";
-  const store = await loadStore();
-  const user = store.users.find((item) => item.email === email);
-
-  if (!user || password.length > 128) {
-    throw new HttpError(401, "Email or password is incorrect. If you’re new, create an account first.");
+  if (password.length > 128) {
+    throw new HttpError(401, "Email or password is incorrect.");
   }
 
-  const candidateHash = await scrypt(password, Buffer.from(user.salt, "hex"), 64);
-  const storedHash = Buffer.from(user.passwordHash, "hex");
-  if (candidateHash.length !== storedHash.length || !crypto.timingSafeEqual(candidateHash, storedHash)) {
-    throw new HttpError(401, "Email or password is incorrect. If you’re new, create an account first.");
+  const user = await usersCollection.findOne({ email });
+  let valid = false;
+  if (user) {
+    if (user.passwordFormat === "bcrypt" || (!user.salt && user.passwordHash)) {
+      valid = await bcrypt.compare(password, user.passwordHash);
+    } else {
+      valid = await verifyLegacyPassword(password, user);
+      if (valid) {
+        const migratedHash = await bcrypt.hash(password, 12);
+        await usersCollection.updateOne(
+          { id: user.id },
+          {
+            $set: {
+              passwordHash: migratedHash,
+              passwordFormat: "bcrypt",
+              updatedAt: new Date().toISOString(),
+            },
+            $unset: { salt: "" },
+          }
+        );
+        user.passwordHash = migratedHash;
+        user.passwordFormat = "bcrypt";
+      }
+    }
   }
 
-  createSession(request, response, user, body.remember === true);
+  if (!valid) {
+    throw new HttpError(401, "Email or password is incorrect. If you're new, create an account first.");
+  }
+
+  const remember = body.remember === true;
+  setAuthCookie(request, response, createToken(user, remember), remember);
+  sendJson(response, 200, { token: createToken(user, false), user: publicUser(user) });
+}
+
+async function getProfile(request, response, user) {
+  sendJson(response, 200, { user: publicUser(user) });
+}
+
+async function updateProfile(request, response, user) {
+  const body = await readJsonBody(request);
+  const updates = {};
+
+  if (body.name !== undefined) {
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    if (name.length < 2 || name.length > 80) {
+      throw new HttpError(400, "Enter a name between 2 and 80 characters.");
+    }
+    updates.name = name;
+  }
+  if (body.password !== undefined) {
+    const password = typeof body.password === "string" ? body.password : "";
+    if (password.length < 10 || password.length > 128) {
+      throw new HttpError(400, "Password must be between 10 and 128 characters.");
+    }
+    updates.passwordHash = await bcrypt.hash(password, 12);
+    updates.passwordFormat = "bcrypt";
+  }
+  if (Object.keys(updates).length === 0) {
+    throw new HttpError(400, "Provide a name or password to update.");
+  }
+  updates.updatedAt = new Date().toISOString();
+
+  const result = await usersCollection.findOneAndUpdate(
+    { id: user.id },
+    { $set: updates },
+    { returnDocument: "after" }
+  );
+  sendJson(response, 200, { user: publicUser(result) });
+}
+
+async function listUsers(request, response) {
+  const users = await usersCollection.find({}, { projection: { _id: 0, passwordHash: 0, passwordFormat: 0, salt: 0 } }).toArray();
+  sendJson(response, 200, { users: users.map(publicUser) });
+}
+
+async function updateUserRole(request, response) {
+  const body = await readJsonBody(request);
+  const id = typeof body.id === "string" ? body.id : "";
+  const role = typeof body.role === "string" ? body.role : "";
+  if (!["member", "manager", "admin"].includes(role)) {
+    throw new HttpError(400, "Role must be member, manager, or admin.");
+  }
+  const user = await usersCollection.findOneAndUpdate(
+    { id },
+    { $set: { role, updatedAt: new Date().toISOString() } },
+    { returnDocument: "after" }
+  );
+  if (!user) throw new HttpError(404, "User not found.");
   sendJson(response, 200, { user: publicUser(user) });
 }
 
@@ -285,94 +369,74 @@ async function createTask(request, response, user) {
   const dueDate = typeof body.dueDate === "string" ? body.dueDate : "";
   const description = typeof body.description === "string" ? body.description.trim() : "";
   const contributionPoints = Number(body.contributionPoints);
-  const parsedDueDate = /^\d{4}-\d{2}-\d{2}$/.test(dueDate) ? new Date(`${dueDate}T00:00:00.000Z`) : null;
 
-  if (!title || title.length > 100) {
-    throw new HttpError(400, "Task name is required and must be 100 characters or fewer.");
-  }
-  if (!Object.hasOwn(teamRoster, team)) {
-    throw new HttpError(400, "Choose a valid team.");
-  }
-  if (!teamRoster[team].includes(assignee)) {
-    throw new HttpError(400, "Choose a team member from the selected team.");
-  }
-  if (!Number.isSafeInteger(contributionPoints) || contributionPoints < 1) {
-    throw new HttpError(400, "Contribution points must be a positive whole number.");
-  }
-  if (project.length > 100) {
-    throw new HttpError(400, "Project name must be 100 characters or fewer.");
-  }
-  if (!["Low", "Medium", "High", "Urgent"].includes(priority)) {
-    throw new HttpError(400, "Choose a valid task priority.");
-  }
-  if (
-    !parsedDueDate ||
-    Number.isNaN(parsedDueDate.getTime()) ||
-    parsedDueDate.toISOString().slice(0, 10) !== dueDate ||
-    dueDate < localDateString(new Date())
-  ) {
-    throw new HttpError(400, "Choose a valid due date that is today or later.");
-  }
-  if (!description || description.length > 1000) {
-    throw new HttpError(400, "Description is required and must be 1,000 characters or fewer.");
-  }
+  if (!title || title.length > 100) throw new HttpError(400, "Task name is required.");
+  if (!Object.hasOwn(teamRoster, team)) throw new HttpError(400, "Choose a valid team.");
+  if (!teamRoster[team].includes(assignee)) throw new HttpError(400, "Choose a valid assignee.");
+  if (!Number.isSafeInteger(contributionPoints) || contributionPoints < 1) throw new HttpError(400, "Contribution points must be positive.");
+  if (project.length > 100) throw new HttpError(400, "Project name is too long.");
+  if (!["Low", "Medium", "High", "Urgent"].includes(priority)) throw new HttpError(400, "Choose a valid priority.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) throw new HttpError(400, "Choose a valid due date.");
+  if (!description || description.length > 1000) throw new HttpError(400, "Description is required.");
 
   const task = {
     id: crypto.randomUUID(),
-    title,
-    team,
-    assignee,
-    contributionPoints,
-    project,
-    priority,
-    dueDate,
-    description,
+    title, team, assignee, contributionPoints, project, priority, dueDate, description,
     status: "Assigned",
     createdBy: user.id,
     createdAt: new Date().toISOString(),
   };
-  await updateStore((store) => {
-    store.tasks.push(task);
-  });
+  await tasksCollection.insertOne(task);
   sendJson(response, 201, { task });
+}
+
+async function localDateString(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 async function handleApiRequest(request, response, pathname) {
   if (request.method === "GET" && pathname === "/api/auth/session") {
-    const store = await loadStore();
-    const user = getAuthenticatedUser(request, store);
+    const user = await authenticate(request);
     sendJson(response, 200, { user: user ? publicUser(user) : null });
     return;
   }
-
   if (request.method === "POST" && pathname === "/api/auth/signup") {
     await createAccount(request, response);
     return;
   }
-
   if (request.method === "POST" && pathname === "/api/auth/login") {
     await login(request, response);
     return;
   }
-
   if (request.method === "POST" && pathname === "/api/auth/logout") {
-    const sessionId = parseCookies(request.headers.cookie).get("orbit_session");
-    if (sessionId) {
-      sessions.delete(sessionId);
-    }
     const secure = request.socket.encrypted ? "; Secure" : "";
-    response.setHeader("Set-Cookie", `orbit_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`);
+    response.setHeader("Set-Cookie", `orbit_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`);
     sendJson(response, 200, { success: true });
     return;
   }
 
+  if (request.method === "GET" && pathname === "/api/users/me") {
+    await requireAuth(getProfile)(request, response);
+    return;
+  }
+  if (request.method === "PATCH" && pathname === "/api/users/me") {
+    await requireAuth(updateProfile)(request, response);
+    return;
+  }
+  if (request.method === "GET" && pathname === "/api/users") {
+    await requireRole("manager", "admin")(listUsers)(request, response);
+    return;
+  }
+  if (request.method === "PATCH" && pathname === "/api/users/role") {
+    await requireRole("admin")(updateUserRole)(request, response);
+    return;
+  }
+
   if (request.method === "POST" && pathname === "/api/tasks") {
-    const store = await loadStore();
-    const user = getAuthenticatedUser(request, store);
-    if (!user) {
-      throw new HttpError(401, "Your session has expired. Sign in again.");
-    }
-    await createTask(request, response, user);
+    await requireAuth(createTask)(request, response);
     return;
   }
 
@@ -380,7 +444,6 @@ async function handleApiRequest(request, response, pathname) {
     sendError(response, 404, "API endpoint not found.");
     return;
   }
-
   return false;
 }
 
@@ -397,7 +460,6 @@ async function serveStatic(request, response, pathname) {
     sendError(response, 400, "Bad Request");
     return;
   }
-
   if (!filePath) {
     sendError(response, 400, "Bad Request");
     return;
@@ -405,8 +467,7 @@ async function serveStatic(request, response, pathname) {
 
   const protectedPages = new Set(["/create-task.html", "/dashboard.html", "/team.html", "/approvals.html"]);
   if (protectedPages.has(pathname)) {
-    const store = await loadStore();
-    if (!getAuthenticatedUser(request, store)) {
+    if (!(await authenticate(request))) {
       response.writeHead(302, { Location: "/index.html", "Cache-Control": "no-store" });
       response.end();
       return;
@@ -437,7 +498,6 @@ async function serveStatic(request, response, pathname) {
     "Cache-Control": "no-cache",
     "X-Content-Type-Options": "nosniff",
   });
-
   if (request.method === "HEAD") {
     response.end();
     return;
@@ -446,11 +506,8 @@ async function serveStatic(request, response, pathname) {
   const fileStream = fs.createReadStream(filePath);
   fileStream.on("error", (error) => {
     console.error("Failed to stream static file:", error);
-    if (!response.headersSent) {
-      sendError(response, 500, "Unable to read the requested file.");
-    } else {
-      response.destroy(error);
-    }
+    if (!response.headersSent) sendError(response, 500, "Unable to read the requested file.");
+    else response.destroy(error);
   });
   fileStream.pipe(response);
 }
@@ -458,23 +515,26 @@ async function serveStatic(request, response, pathname) {
 async function handleRequest(request, response) {
   const requestUrl = new URL(request.url, "http://localhost");
   const apiResult = await handleApiRequest(request, response, requestUrl.pathname);
-  if (apiResult !== false) {
-    return;
-  }
+  if (apiResult !== false) return;
   await serveStatic(request, response, requestUrl.pathname);
 }
 
 async function startServer() {
-  await fs.promises.mkdir(dataDirectory, { recursive: true });
-  try {
-    await fs.promises.access(storePath, fs.constants.F_OK);
-    await loadStore();
-  } catch (error) {
-    if (error.code !== "ENOENT") {
-      throw error;
-    }
-    await fs.promises.writeFile(storePath, JSON.stringify({ users: [], tasks: [] }), { flag: "wx", mode: 0o600 });
+  if (!jwtSecret) {
+    throw new Error("JWT_SECRET is required when NODE_ENV=production.");
   }
+
+  const mongoClient = new MongoClient(mongoUri);
+  await mongoClient.connect();
+  db = mongoClient.db(mongoDbName);
+  usersCollection = db.collection("users");
+  tasksCollection = db.collection("tasks");
+
+  await usersCollection.createIndex({ email: 1 }, { unique: true });
+  await usersCollection.createIndex({ id: 1 }, { unique: true });
+  await tasksCollection.createIndex({ id: 1 }, { unique: true });
+  await tasksCollection.createIndex({ createdBy: 1 });
+  await migrateLegacyStore();
 
   const server = http.createServer((request, response) => {
     handleRequest(request, response).catch((error) => {
@@ -483,16 +543,15 @@ async function startServer() {
         return;
       }
       console.error("Request failed:", error);
-      if (!response.headersSent) {
-        sendError(response, 500, "The request could not be completed.");
-      } else {
-        response.destroy(error);
-      }
+      if (!response.headersSent) sendError(response, 500, "The request could not be completed.");
+      else response.destroy(error);
     });
   });
 
+  server.on("close", () => mongoClient.close());
   server.listen(port, () => {
     console.log(`Orbit is running at http://localhost:${port}`);
+    console.log(`MongoDB database: ${mongoDbName}`);
   });
 }
 

@@ -28,7 +28,7 @@
         return;
       }
 
-      nameEl.textContent = "Lead";
+      nameEl.textContent = result.user.name || "Member";
     } catch {
       window.location.replace("index.html");
     }

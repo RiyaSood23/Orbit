@@ -2,7 +2,7 @@
 
 Orbit is a team collaboration and work management system designed to help teams organise projects, assign work, review submissions and communicate in one place.
 
-For CE-1, the project is being developed as a static HTML, CSS and JavaScript implementation. For CE-2, this implementation will be converted into a React application. The current Node.js server only serves the front-end files locally; it does not provide a database, authentication, file uploads, or persistent data storage.
+The CE-1 frontend is retained as static HTML, CSS and JavaScript. The Node.js backend now uses MongoDB for persistent users and tasks, bcrypt for password hashing, JWT for authentication, protected routes, and role-based authorization.
 
 ## Team members
 
@@ -29,13 +29,24 @@ For CE-1, the project is being developed as a static HTML, CSS and JavaScript im
    npm install
    ```
 
-3. Start the local server:
+3. Start MongoDB locally, or set `MONGODB_URI` to an Atlas connection string.
+
+4. Optionally create a `.env` file:
+
+   ```env
+   MONGODB_URI=mongodb://127.0.0.1:27017
+   MONGODB_DB=Orbit
+   JWT_SECRET=replace-with-a-long-random-secret
+   PORT=3000
+   ```
+
+5. Start the local server:
 
    ```powershell
    npm start
    ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in a browser.
+6. Open [http://localhost:3000](http://localhost:3000) in a browser.
 
 The review workspace is available at [http://localhost:3000/approvals.html](http://localhost:3000/approvals.html). Approval decisions and comments are demo interactions and reset when the page is refreshed.
 
