@@ -1,4 +1,12 @@
+
 require("dotenv").config();
+
+const dns = require("node:dns");
+
+dns.setServers([
+  "1.1.1.1",
+  "1.0.0.1"
+]);
 
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
@@ -6,13 +14,36 @@ const fs = require("fs");
 const http = require("http");
 const jwt = require("jsonwebtoken");
 const path = require("path");
-const { MongoClient } = require("mongodb");
+const mongoose = require("mongoose");
 const { promisify } = require("util");
+const {
+  handleMember3,
+  RouteError: Member3Error,
+  calculateTeamMemberProgress,
+} = require("./server/routes/member3");
+const Contribution = require("./server/models/Contribution");
 
 const port = Number(process.env.PORT) || 3000;
 const rootDirectory = __dirname;
-const mongoUri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017";
 const mongoDbName = process.env.MONGODB_DB || "Orbit";
+function getMongoUri() {
+  if (process.env.MONGODB_URI) return process.env.MONGODB_URI;
+
+  const cluster = process.env.MONGODB_CLUSTER;
+  const username = process.env.MONGODB_USERNAME;
+  const password = process.env.MONGODB_PASSWORD;
+  if (cluster || username || password) {
+    if (!cluster || !username || !password) {
+      throw new Error("Set MONGODB_CLUSTER, MONGODB_USERNAME, and MONGODB_PASSWORD together.");
+    }
+
+    return `mongodb+srv://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${cluster}/${encodeURIComponent(mongoDbName)}?retryWrites=true&w=majority&appName=Orbit`;
+  }
+
+  return "mongodb://127.0.0.1:27017";
+}
+
+const mongoUri = getMongoUri();
 const jwtSecret =
   process.env.JWT_SECRET ||
   (process.env.NODE_ENV === "production" ? null : "orbit-development-secret-change-in-production");
@@ -369,11 +400,26 @@ async function createTask(request, response, user) {
   const dueDate = typeof body.dueDate === "string" ? body.dueDate : "";
   const description = typeof body.description === "string" ? body.description.trim() : "";
   const contributionPoints = Number(body.contributionPoints);
+  const progress = body.progress === undefined ? 0 : Number(body.progress);
+  const teamId = typeof body.teamId === "string" ? body.teamId.trim() : "";
+  if (teamId) {
+    const Team = mongoose.models.Team;
+    if (!Team) throw new HttpError(500, "Team management is unavailable.");
+    if (!(await Team.exists({ id: teamId }))) {
+      throw new HttpError(404, "Team not found.");
+    }
+    if (!(await Team.exists({ id: teamId, "members.userId": assignee }))) {
+      throw new HttpError(400, "The assignee must be a member of the selected team.");
+    }
+  }
 
   if (!title || title.length > 100) throw new HttpError(400, "Task name is required.");
-  if (!Object.hasOwn(teamRoster, team)) throw new HttpError(400, "Choose a valid team.");
-  if (!teamRoster[team].includes(assignee)) throw new HttpError(400, "Choose a valid assignee.");
-  if (!Number.isSafeInteger(contributionPoints) || contributionPoints < 1) throw new HttpError(400, "Contribution points must be positive.");
+  if (!teamId && !Object.hasOwn(teamRoster, team)) throw new HttpError(400, "Choose a valid team.");
+  if (!teamId && !teamRoster[team].includes(assignee)) throw new HttpError(400, "Choose a valid assignee.");
+  if (!Number.isSafeInteger(contributionPoints) || contributionPoints < 1 || contributionPoints > 1000) throw new HttpError(400, "Contribution points must be a whole number from 1 to 1000.");
+  if (!Number.isInteger(progress) || progress < 0 || progress > 99) {
+    throw new HttpError(400, "Initial progress must be from 0 to 99. The assigned member must complete the task.");
+  }
   if (project.length > 100) throw new HttpError(400, "Project name is too long.");
   if (!["Low", "Medium", "High", "Urgent"].includes(priority)) throw new HttpError(400, "Choose a valid priority.");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) throw new HttpError(400, "Choose a valid due date.");
@@ -381,13 +427,229 @@ async function createTask(request, response, user) {
 
   const task = {
     id: crypto.randomUUID(),
-    title, team, assignee, contributionPoints, project, priority, dueDate, description,
-    status: "Assigned",
+    title, team, teamId: teamId || null, assignee, contributionPoints, project, priority, dueDate, description,
+    progress,
+    status: teamId
+      ? progress > 0 ? "In progress" : "To do"
+      : "Assigned",
     createdBy: user.id,
     createdAt: new Date().toISOString(),
   };
   await tasksCollection.insertOne(task);
-  sendJson(response, 201, { task });
+  const memberProgress = teamId
+    ? [...(await calculateTeamMemberProgress(db, teamId, [assignee])).entries()].map(([memberId, progress]) => ({
+        memberId,
+        ...progress,
+      }))
+    : [];
+  sendJson(response, 201, { task, memberProgress });
+}
+
+async function getTaskMemberProgress(task, memberIds) {
+  if (typeof task.teamId !== "string" || !task.teamId) return [];
+  const progressById = await calculateTeamMemberProgress(db, task.teamId, memberIds);
+  return [...progressById.entries()].map(([memberId, progress]) => ({ memberId, ...progress }));
+}
+
+async function updateTask(request, response, user, taskId) {
+  const body = await readJsonBody(request);
+  const hasProgress = body.progress !== undefined;
+  const hasPoints = body.contributionPoints !== undefined;
+  const hasAssignee = body.assignee !== undefined;
+  if ([hasProgress, hasPoints, hasAssignee].filter(Boolean).length !== 1) {
+    throw new HttpError(400, "Update one task field at a time.");
+  }
+
+  const progress = hasProgress ? Number(body.progress) : null;
+  if (hasProgress && (!Number.isInteger(progress) || progress < 0 || progress > 100)) {
+    throw new HttpError(400, "Progress must be a whole number from 0 to 100.");
+  }
+
+  const contributionPoints = hasPoints ? Number(body.contributionPoints) : null;
+  if (hasPoints &&
+      (!Number.isSafeInteger(contributionPoints) || contributionPoints < 1 || contributionPoints > 1000)) {
+    throw new HttpError(400, "Contribution points must be a whole number from 1 to 1000.");
+  }
+
+  const task = await tasksCollection.findOne({ id: taskId });
+  if (!task) throw new HttpError(404, "Task not found.");
+
+  if (hasAssignee) {
+    const newAssignee = typeof body.assignee === "string" ? body.assignee.trim() : "";
+    if (!newAssignee) throw new HttpError(400, "Choose a valid team member.");
+    if (task.status === "Completed" || await Contribution.exists({ taskId })) {
+      throw new HttpError(409, "Completed tasks cannot be reassigned.");
+    }
+    const Team = mongoose.models.Team;
+    const team = typeof task.teamId === "string" && Team
+      ? await Team.findOne({ id: task.teamId }).lean()
+      : null;
+    if (!team) throw new HttpError(404, "The task's team was not found.");
+    if (!["manager", "admin"].includes(user.role || "member") && team.leaderId !== user.id) {
+      throw new HttpError(403, "Only the team leader or an administrator can reassign tasks.");
+    }
+    if (!team.members.some(member => member.userId === newAssignee)) {
+      throw new HttpError(400, "The new assignee must be a member of this team.");
+    }
+    if (!(await usersCollection.findOne({ id: newAssignee }))) {
+      throw new HttpError(404, "The new assignee was not found.");
+    }
+    const updatedTask = await tasksCollection.findOneAndUpdate(
+      { id: taskId, status: { $ne: "Completed" } },
+      { $set: { assignee: newAssignee, updatedAt: new Date().toISOString() } },
+      { returnDocument: "after" }
+    );
+    if (!updatedTask) throw new HttpError(409, "Completed tasks cannot be reassigned.");
+    const memberProgress = await getTaskMemberProgress(updatedTask, [task.assignee, newAssignee]);
+    sendJson(response, 200, { task: updatedTask, memberProgress });
+    return;
+  }
+
+  if (contributionPoints !== null) {
+    if (task.status === "Completed" || await Contribution.exists({ taskId })) {
+      throw new HttpError(409, "Contribution points cannot be changed after task completion.");
+    }
+    const Team = mongoose.models.Team;
+    const team = typeof task.teamId === "string" && Team
+      ? await Team.findOne({ id: task.teamId }).lean()
+      : null;
+    if (!team) throw new HttpError(404, "The task's team was not found.");
+    if (!["manager", "admin"].includes(user.role || "member") && team.leaderId !== user.id) {
+      throw new HttpError(403, "Only the team leader or an administrator can change task points.");
+    }
+    const updatedTask = await tasksCollection.findOneAndUpdate(
+      { id: taskId, status: { $ne: "Completed" } },
+      { $set: { contributionPoints, updatedAt: new Date().toISOString() } },
+      { returnDocument: "after" }
+    );
+    if (!updatedTask) throw new HttpError(409, "Contribution points cannot be changed after task completion.");
+    sendJson(response, 200, {
+      task: updatedTask,
+      contribution: null,
+      memberProgress: await getTaskMemberProgress(updatedTask, [updatedTask.assignee]),
+    });
+    return;
+  }
+
+  if (task.assignee !== user.id) {
+    throw new HttpError(403, "Only the assigned member can update this task's progress.");
+  }
+
+  if (progress !== 100) {
+    const updates = { updatedAt: new Date().toISOString() };
+    updates.progress = progress;
+    updates.status = progress === 0 ? "To do" : "In progress";
+    const updatedTask = await tasksCollection.findOneAndUpdate(
+      { id: taskId, assignee: user.id },
+      { $set: updates },
+      { returnDocument: "after" }
+    );
+    if (!updatedTask) throw new HttpError(404, "Task not found.");
+    sendJson(response, 200, {
+      task: updatedTask,
+      contribution: null,
+      memberProgress: await getTaskMemberProgress(updatedTask, [updatedTask.assignee]),
+    });
+    return;
+  }
+
+  const session = await mongoose.startSession();
+  let updatedTask;
+  let contribution;
+  try {
+    await session.withTransaction(async () => {
+      const currentTask = await tasksCollection.findOne({ id: taskId }, { session });
+      if (!currentTask) throw new HttpError(404, "Task not found.");
+      if (currentTask.assignee !== user.id) {
+        throw new HttpError(403, "Only the assigned member can update this task's progress.");
+      }
+
+      const points = Number(currentTask.contributionPoints);
+      if (!Number.isSafeInteger(points) || points < 1 || points > 1000) {
+        throw new HttpError(400, "This task does not have a valid contribution point value.");
+      }
+      if (typeof currentTask.teamId !== "string" || !currentTask.teamId) {
+        throw new HttpError(409, "This task is not associated with a team and cannot award contribution points.");
+      }
+
+      const Team = mongoose.models.Team;
+      if (!Team || !(await Team.exists({ id: currentTask.teamId }).session(session))) {
+        throw new HttpError(404, "The task's team was not found.");
+      }
+
+      const priorAward = await Contribution.findOne({ taskId }).session(session).lean();
+      if (currentTask.status === "Completed" && priorAward) {
+        updatedTask = currentTask;
+        contribution = priorAward;
+        return;
+      }
+
+      const completedTask = await tasksCollection.findOneAndUpdate(
+        { id: taskId, assignee: user.id, status: { $ne: "Completed" } },
+        {
+          $set: {
+            progress: 100,
+            status: "Completed",
+            updatedAt: new Date().toISOString(),
+            completedAt: new Date().toISOString(),
+          },
+        },
+        { returnDocument: "after", session }
+      );
+
+      if (!completedTask) {
+        const latestTask = await tasksCollection.findOne({ id: taskId }, { session });
+        if (!latestTask) throw new HttpError(404, "Task not found.");
+        if (latestTask.assignee !== user.id) {
+          throw new HttpError(403, "Only the assigned member can update this task's progress.");
+        }
+        updatedTask = latestTask;
+      } else {
+        updatedTask = completedTask;
+      }
+
+      contribution = priorAward || (await Contribution.create([{
+        id: `task-completion-${taskId}`,
+        memberId: user.id,
+        teamId: currentTask.teamId,
+        points,
+        reason: `Completed task: ${currentTask.title}`,
+        taskId,
+        awardedBy: user.id,
+      }], { session }))[0];
+    });
+  } finally {
+    await session.endSession();
+  }
+
+  sendJson(response, 200, {
+    task: updatedTask,
+    contribution,
+    memberProgress: await getTaskMemberProgress(updatedTask, [updatedTask.assignee]),
+  });
+}
+
+async function deleteTask(request, response, user, taskId) {
+  const task = await tasksCollection.findOne({ id: taskId });
+  if (!task) throw new HttpError(404, "Task not found.");
+
+  if (typeof task.teamId === "string" && task.teamId) {
+    const Team = mongoose.models.Team;
+    const team = Team ? await Team.findOne({ id: task.teamId }).lean() : null;
+    if (!team) throw new HttpError(404, "The task's team was not found.");
+    if (!["manager", "admin"].includes(user.role || "member") && team.leaderId !== user.id) {
+      throw new HttpError(403, "Only the team leader or an administrator can delete tasks.");
+    }
+  } else if (task.createdBy !== user.id && !["manager", "admin"].includes(user.role || "member")) {
+    throw new HttpError(403, "You cannot delete this task.");
+  }
+
+  const result = await tasksCollection.deleteOne({ id: taskId });
+  if (!result.deletedCount) throw new HttpError(404, "Task not found.");
+  sendJson(response, 200, {
+    success: true,
+    memberProgress: await getTaskMemberProgress(task, [task.assignee]),
+  });
 }
 
 async function localDateString(date) {
@@ -398,6 +660,35 @@ async function localDateString(date) {
 }
 
 async function handleApiRequest(request, response, pathname) {
+  const member3Api =
+    pathname === "/api/teams" ||
+    pathname.startsWith("/api/teams/") ||
+    pathname === "/api/members" ||
+    pathname.startsWith("/api/members/") ||
+    pathname.startsWith("/api/contributions");
+
+  if (member3Api) {
+    const isWrite =
+      ["POST", "PATCH", "PUT", "DELETE"].includes(request.method);
+    const user = await authenticate(request);
+    if (isWrite && !user) throw new HttpError(401, "Authentication required.");
+    try {
+      const result = await handleMember3(
+        request,
+        response,
+        pathname,
+        db,
+        { user }
+      );
+      if (result !== false) return true;
+    } catch (error) {
+      if (error instanceof Member3Error) {
+        throw new HttpError(error.status, error.message);
+      }
+      throw error;
+    }
+  }
+
   if (request.method === "GET" && pathname === "/api/auth/session") {
     const user = await authenticate(request);
     sendJson(response, 200, { user: user ? publicUser(user) : null });
@@ -437,6 +728,17 @@ async function handleApiRequest(request, response, pathname) {
 
   if (request.method === "POST" && pathname === "/api/tasks") {
     await requireAuth(createTask)(request, response);
+    return;
+  }
+  const taskMatch = pathname.match(/^\/api\/tasks\/([^/]+)$/);
+  if (request.method === "PATCH" && taskMatch) {
+    const taskId = decodeURIComponent(taskMatch[1]);
+    await requireAuth((request, response, user) => updateTask(request, response, user, taskId))(request, response);
+    return;
+  }
+  if (request.method === "DELETE" && taskMatch) {
+    const taskId = decodeURIComponent(taskMatch[1]);
+    await requireAuth((request, response, user) => deleteTask(request, response, user, taskId))(request, response);
     return;
   }
 
@@ -524,9 +826,10 @@ async function startServer() {
     throw new Error("JWT_SECRET is required when NODE_ENV=production.");
   }
 
-  const mongoClient = new MongoClient(mongoUri);
-  await mongoClient.connect();
-  db = mongoClient.db(mongoDbName);
+  await mongoose.connect(mongoUri, { dbName: mongoDbName });
+  await Contribution.migrateLegacyHistory();
+  await Contribution.init();
+  db = mongoose.connection.db;
   usersCollection = db.collection("users");
   tasksCollection = db.collection("tasks");
 
@@ -548,7 +851,7 @@ async function startServer() {
     });
   });
 
-  server.on("close", () => mongoClient.close());
+  server.on("close", () => mongoose.disconnect());
   server.listen(port, () => {
     console.log(`Orbit is running at http://localhost:${port}`);
     console.log(`MongoDB database: ${mongoDbName}`);

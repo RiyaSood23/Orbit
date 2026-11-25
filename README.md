@@ -29,16 +29,20 @@ The CE-1 frontend is retained as static HTML, CSS and JavaScript. The Node.js ba
    npm install
    ```
 
-3. Start MongoDB locally, or set `MONGODB_URI` to an Atlas connection string.
+3. Configure MongoDB. The repository includes an ignored local `.env` file and a safe `.env.example` template. For Atlas, set `MONGODB_CLUSTER`, `MONGODB_USERNAME`, and `MONGODB_PASSWORD` in `.env`; use a rotated database-user password. The cluster must allow your current IP in Atlas Network Access. For a local MongoDB instance, remove the three Atlas settings and set `MONGODB_URI=mongodb://127.0.0.1:27017`.
 
 4. Optionally create a `.env` file:
 
    ```env
-   MONGODB_URI=mongodb://127.0.0.1:27017
    MONGODB_DB=Orbit
+   MONGODB_CLUSTER=cluster0.example.mongodb.net
+   MONGODB_USERNAME=your-atlas-database-user
+   MONGODB_PASSWORD=your-rotated-password
    JWT_SECRET=replace-with-a-long-random-secret
    PORT=3000
    ```
+
+   The password is URI-encoded by the server, so special characters are supported. Never commit `.env` or paste database credentials into source control.
 
 5. Start the local server:
 

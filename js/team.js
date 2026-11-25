@@ -214,34 +214,146 @@ const initialState = {
   ]
 };
 
-let state = structuredClone(initialState);
+// Load saved team data from localStorage.
+// If no saved data exists, use the original demo data.
+function loadState() {
+  try {
+    const savedState = localStorage.getItem("orbitTeamDetailsV2");
+
+    if (savedState) {
+      return {
+        ...structuredClone(initialState),
+        ...JSON.parse(savedState)
+      };
+    }
+  } catch (error) {
+    console.error("Could not load saved team data:", error);
+  }
+
+  return structuredClone(initialState);
+}
+
+let state = loadState();
+
 let activeFilter = "all";
 let searchTerm = "";
 let memberSort = "name";
 let taskSort = "deadline";
 let performerSort = "desc";
 let toastTimer;
+let memberDirectory = [];
+let currentUser = null;
+let canManageCurrentTeam = false;
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 
-function clearSavedState() {
+async function apiRequest(url, options = {}) {
+  const response = await fetch(url, {
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    ...options,
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error || "The request could not be completed.");
+  return body;
+}
+
+async function loadTeamsFromApi() {
   try {
-    localStorage.removeItem("orbitTeamDetailsV2");
+    const session = await apiRequest("/api/auth/session");
+    currentUser = session.user || null;
+    const { teams } = await apiRequest("/api/teams");
+    const teamSelector = $("#teamSelector");
+    if (!teamSelector) return;
+    teamSelector.innerHTML = (teams || []).map(team =>
+      `<option value="${escapeHTML(team.id)}">${escapeHTML(team.name)}</option>`
+    ).join("");
+
+    if (!teams?.length) {
+      state.team = { name: "No teams yet", description: "Create a team to get started.", head: "", updated: "from server" };
+      state.members = [];
+      state.tasks = [];
+      state.checklist = [];
+      return;
+    }
+
+    const requestedId = new URLSearchParams(window.location.search).get("team");
+    teamSelector.value = teams.some(team => team.id === requestedId) ? requestedId : teams[0].id;
+    await loadTeamDashboard(teamSelector.value);
   } catch (error) {
-    console.warn("Saved demo data could not be cleared.", error);
+    console.warn("Teams could not be loaded from the API:", error.message);
+    toast(error.message);
   }
 }
 
+async function loadTeamDashboard(teamId) {
+  const dashboard = await apiRequest(`/api/teams/${encodeURIComponent(teamId)}/dashboard`);
+  const team = dashboard.team;
+  const contributionByMember = new Map();
+  for (const contribution of dashboard.contributions || []) {
+    contributionByMember.set(
+      contribution.memberId,
+      (contributionByMember.get(contribution.memberId) || 0) + (Number(contribution.points) || 0)
+    );
+  }
+
+  state.team = {
+    id: team.id,
+    name: team.name,
+    description: team.description,
+    head: team.leaderId,
+    updated: "from server"
+  };
+  state.contributions = dashboard.contributions || [];
+  canManageCurrentTeam = Boolean(currentUser && (
+    ["manager", "admin"].includes(currentUser.role) || currentUser.id === team.leaderId
+  ));
+  $("#addMemberBtn").hidden = !canManageCurrentTeam;
+  $("#awardContributionBtn").hidden = !canManageCurrentTeam;
+  state.members = (dashboard.members || []).map(member => {
+    const profile = member.profile || {};
+    return {
+      id: member.userId,
+      name: profile.name || member.userId,
+      initials: getInitials(profile.name || member.userId),
+      role: member.role || "Member",
+      skills: Array.isArray(profile.skills) ? profile.skills : (member.skills || []),
+      points: contributionByMember.get(member.userId) || 0,
+      completed: member.completedTasks || 0,
+      assignedTasks: member.assignedTasks || 0,
+      progress: Math.max(0, Math.min(100, Number(member.progress) || 0)),
+      active: true,
+      lastActivity: "Just now",
+      lastActivityRank: 0
+    };
+  });
+  state.checklist = (dashboard.checkpoints || []).map(item => ({ id: item.id, text: item.text, done: !!item.done }));
+  state.tasks = (dashboard.tasks || []).map(task => ({
+    id: task.id,
+    title: task.title,
+    description: task.description || "",
+    assignee: task.assignee,
+    priority: task.priority,
+    deadline: task.dueDate,
+    points: task.contributionPoints || 0,
+    progress: task.status === "Completed" ? 100 : Math.max(0, Math.min(100, Number(task.progress) || 0)),
+    status: task.status === "Completed"
+      ? "Completed"
+      : task.status === "Assigned"
+        ? "To do"
+        : (task.status || "To do")
+  }));
+  state.reminders = dashboard.reminders || [];
+  renderAll();
+  window.history.replaceState({}, "", `team.html?team=${encodeURIComponent(teamId)}`);
+}
+
+// Save the complete team workspace to the browser.
 function saveState() {
   const saveStatus = $("#saveStatus");
-
-  if (saveStatus) {
-    saveStatus.textContent = "Demo mode · resets on refresh";
-  }
+  if (saveStatus) saveStatus.textContent = "Synced with server";
 }
-
-clearSavedState();
 
 function escapeHTML(value = "") {
   return String(value).replace(/[&<>"']/g, char => ({
@@ -259,14 +371,7 @@ function memberById(id) {
 
 function contributionPoints(memberId) {
   const member = memberById(memberId);
-
-  if (!member) return 0;
-
-  const completedTaskPoints = state.tasks
-    .filter(task => task.assignee === memberId && task.progress === 100)
-    .reduce((total, task) => total + Math.max(0, Number(task.points) || 0), 0);
-
-  return member.points + completedTaskPoints;
+  return member ? Number(member.points) || 0 : 0;
 }
 
 function getInitials(name) {
@@ -481,6 +586,9 @@ function renderMembers() {
         <button class="member-expand" type="button"
                 aria-label="Show ${escapeHTML(member.name)} details"
                 aria-expanded="false">⌄</button>
+        ${canManageCurrentTeam && member.id !== state.team.head
+          ? `<button class="remove-member" type="button" data-remove-member="${escapeHTML(member.id)}">Remove</button>`
+          : ""}
 
         <div class="member-extra">
           <div class="extra-item">
@@ -538,6 +646,19 @@ function renderChecklist() {
     : `<div class="empty-state">Add your first checklist item.</div>`;
 }
 
+function renderReminders() {
+  const reminders = state.reminders || [];
+  $("#reminderList").innerHTML = reminders.length
+    ? reminders.map(reminder => `
+      <div class="checklist-item ${reminder.completed ? "done" : ""}" data-reminder="${reminder.id}">
+        <button class="checklist-check ${reminder.completed ? "checked" : ""}" type="button" aria-label="Toggle reminder">✓</button>
+        <div><strong>${escapeHTML(reminder.title)}</strong><small>${escapeHTML(reminder.dueDate)}</small></div>
+        <button class="delete-check" type="button" aria-label="Delete reminder">×</button>
+      </div>
+    `).join("")
+    : `<div class="empty-state">No reminders.</div>`;
+}
+
 /* Tasks */
 
 function renderTasks() {
@@ -576,6 +697,8 @@ function renderTasks() {
   $("#taskGrid").innerHTML = tasks.length
     ? tasks.map(task => {
       const member = memberById(task.assignee);
+      const assignedMemberCanUpdate = currentUser?.id === task.assignee;
+      const assignedMemberCanEditPoints = canManageCurrentTeam && task.status !== "Completed";
       const overdue =
         task.status !== "Completed" && daysUntil(task.deadline) < 0;
 
@@ -587,6 +710,9 @@ function renderTasks() {
             </span>
 
             <span class="task-status">${escapeHTML(task.status)}</span>
+            ${canManageCurrentTeam
+              ? `<button class="task-delete" type="button" data-delete-task="${escapeHTML(task.id)}" aria-label="Delete ${escapeHTML(task.title)}">×</button>`
+              : ""}
           </div>
 
           <h3>${escapeHTML(task.title)}</h3>
@@ -616,8 +742,9 @@ function renderTasks() {
             <label for="task-points-${task.id}">Points on completion</label>
             <div>
               <input id="task-points-${task.id}" type="number"
-                     class="task-points-input" min="0" max="1000" step="1"
+                     class="task-points-input" min="1" max="1000" step="1"
                      value="${Math.max(0, Number(task.points) || 0)}"
+                     ${assignedMemberCanEditPoints ? "" : "disabled"}
                      aria-label="Points awarded when task is completed">
               <strong>pts</strong>
             </div>
@@ -642,6 +769,8 @@ function renderTasks() {
           <div class="task-controls">
             <label class="check-label">
               <input type="checkbox" class="task-done"
+                     ${assignedMemberCanUpdate ? "" : "disabled"}
+                     ${assignedMemberCanUpdate ? "" : 'title="Only the assigned member can complete this task"'}
                      ${task.status === "Completed" ? "checked" : ""}>
               Complete
             </label>
@@ -650,8 +779,22 @@ function renderTasks() {
               Progress
               <input type="number" class="task-progress-input"
                      min="0" max="100" value="${task.progress}"
+                     ${assignedMemberCanUpdate ? "" : "disabled"}
+                     ${assignedMemberCanUpdate ? "" : 'title="Only the assigned member can update this task"'}
                      aria-label="Task progress percentage"> %
             </label>
+            ${canManageCurrentTeam
+              ? `<label class="task-reassign-control">
+                  Reassign
+                  <select class="task-assignee-input" aria-label="Reassign ${escapeHTML(task.title)}">
+                    ${state.members.map(member => `
+                      <option value="${escapeHTML(member.id)}" ${member.id === task.assignee ? "selected" : ""}>
+                        ${escapeHTML(member.name)}
+                      </option>
+                    `).join("")}
+                  </select>
+                </label>`
+              : ""}
           </div>
         </article>
       `;
@@ -760,104 +903,88 @@ function renderTopPerformers() {
   $("#overallProgressBar").style.width = `${overall}%`;
 }
 
+function renderContributionHistory() {
+  const contributions = state.contributions || [];
+  const teamTotal = contributions.reduce((total, item) => total + (Number(item.points) || 0), 0);
+  $("#teamContributionTotal").textContent = `${teamTotal} pts total`;
+  $("#contributionHistory").innerHTML = contributions.length
+    ? contributions.slice(0, 8).map(item => {
+      const member = memberById(item.memberId);
+      const date = item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "";
+      return `
+        <div class="contribution-history-row">
+          <div>
+            <strong>${escapeHTML(member?.name || "Team member")}</strong>
+            <small>${escapeHTML(item.reason || "Contribution")} · ${escapeHTML(date)}</small>
+          </div>
+          <strong>+${Number(item.points) || 0} pts</strong>
+        </div>
+      `;
+    }).join("")
+    : `<div class="empty-state">No contribution records yet.</div>`;
+}
+
 function renderAll() {
   renderTeamHeader();
   renderSummary();
   renderMembers();
   renderChecklist();
+  renderReminders();
   renderTasks();
   renderActivity();
   renderPriorityTasks();
   renderTopPerformers();
+  renderContributionHistory();
   populateMemberSelects();
 }
 
 function populateMemberSelects() {
-  const options = state.members.map(member => `
-    <option value="${member.id}">
-      ${escapeHTML(member.name)} (${escapeHTML(member.role)})
+  const teamCandidates = memberDirectory.length ? memberDirectory : state.members;
+  const teamOptions = teamCandidates.map(member => `
+    <option value="${escapeHTML(member.id)}">
+      ${escapeHTML(member.name)} (${escapeHTML(member.role || "Member")})
+    </option>
+  `).join("");
+  const taskOptions = state.members.map(member => `
+    <option value="${escapeHTML(member.id)}">
+      ${escapeHTML(member.name)} (${escapeHTML(member.role || "Member")})
     </option>
   `).join("");
 
-  $("#taskAssignee").innerHTML = options;
-  $("#teamHead").innerHTML = options;
+  $("#taskAssignee").innerHTML = taskOptions;
+  $("#teamHead").innerHTML = teamOptions;
+  $("#teamMembers").innerHTML = teamOptions;
 
-  $("#teamHead").value = state.team.head;
+  if (teamCandidates.some(member => member.id === state.team.head)) {
+    $("#teamHead").value = state.team.head;
+  }
 }
 
 /* Task progress updates */
 
-function updateMemberStatistics(memberId) {
-  const member = memberById(memberId);
-
-  if (!member) return;
-
-  const assignedTasks = state.tasks.filter(
-    task => task.assignee === memberId
-  );
-
-  if (!assignedTasks.length) {
-    member.progress = 0;
-    member.completed = 0;
-    return;
-  }
-
-  member.progress = Math.round(
-    assignedTasks.reduce((sum, task) => sum + task.progress, 0) /
-    assignedTasks.length
-  );
-
-  member.completed = assignedTasks.filter(
-    task => task.status === "Completed"
-  ).length;
-}
-
-function updateTask(taskId, changes) {
+async function updateTask(taskId, changes) {
   const task = state.tasks.find(item => item.id === taskId);
-
   if (!task) return;
-
-  const oldAssignee = task.assignee;
-
-  Object.assign(task, changes);
-
-  task.progress = Math.max(0, Math.min(100, Number(task.progress) || 0));
-
-  if (task.progress === 100) {
-    task.status = "Completed";
-  } else if (task.status === "Completed") {
-    task.status = "In progress";
-  } else if (task.progress > 0 && task.status === "To do") {
-    task.status = "In progress";
-  } else if (task.progress === 0 && task.status === "In progress") {
-    task.status = "To do";
+  const payload = {};
+  if (changes.progress !== undefined) {
+    payload.progress = Math.max(0, Math.min(100, Number(changes.progress) || 0));
   }
-
-  updateMemberStatistics(oldAssignee);
-
-  if (task.assignee !== oldAssignee) {
-    updateMemberStatistics(task.assignee);
+  if (changes.points !== undefined) {
+    payload.contributionPoints = Math.max(1, Math.min(1000, Math.round(Number(changes.points) || 1)));
   }
-
-  const member = memberById(task.assignee);
-
-  if (member) {
-    member.lastActivity = "Just now";
-    member.lastActivityRank = 0;
+  try {
+    await apiRequest(`/api/tasks/${encodeURIComponent(taskId)}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    });
+    await loadTeamDashboard(state.team.id);
+    toast(payload.progress === 100
+      ? "Task completed and contribution points saved."
+      : "Task progress saved.");
+  } catch (error) {
+    renderAll();
+    toast(error.message);
   }
-
-  addActivity(
-    member?.name || "Team member",
-    `updated "${task.title}" to ${task.progress}%`,
-    task.status === "Completed" ? "✓" : "↗"
-  );
-
-  saveState();
-  renderAll();
-
-  toast(task.status === "Completed"
-    ? "Task completed successfully!"
-    : "Task progress updated.");
 }
 
 /* Search and sort */
@@ -894,6 +1021,18 @@ $("#statusFilters").addEventListener("click", event => {
 /* Expand member details */
 
 $("#memberList").addEventListener("click", event => {
+  const removeButton = event.target.closest("[data-remove-member]");
+  if (removeButton) {
+    const userId = removeButton.dataset.removeMember;
+    apiRequest(`/api/teams/${encodeURIComponent(state.team.id)}/members`, {
+      method: "DELETE",
+      body: JSON.stringify({ userId })
+    }).then(() => loadTeamDashboard(state.team.id))
+      .then(() => toast("Member removed from the team."))
+      .catch(error => toast(error.message));
+    return;
+  }
+
   const button = event.target.closest(".member-expand");
 
   if (!button) return;
@@ -916,6 +1055,19 @@ $("#taskGrid").addEventListener("change", event => {
   const task = state.tasks.find(item => item.id === taskId);
 
   if (!task) return;
+
+  if (event.target.matches(".task-assignee-input")) {
+    apiRequest(`/api/tasks/${encodeURIComponent(taskId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ assignee: event.target.value })
+    }).then(() => loadTeamDashboard(state.team.id))
+      .then(() => toast("Task reassigned."))
+      .catch(error => {
+        renderAll();
+        toast(error.message);
+      });
+    return;
+  }
 
   if (event.target.matches(".task-done")) {
     updateTask(taskId, {
@@ -950,6 +1102,16 @@ $("#taskGrid").addEventListener("change", event => {
   }
 });
 
+$("#taskGrid").addEventListener("click", event => {
+  const button = event.target.closest("[data-delete-task]");
+  if (!button || !window.confirm("Delete this task? This cannot be undone.")) return;
+  const taskId = button.dataset.deleteTask;
+  apiRequest(`/api/tasks/${encodeURIComponent(taskId)}`, { method: "DELETE" })
+    .then(() => loadTeamDashboard(state.team.id))
+    .then(() => toast("Task deleted."))
+    .catch(error => toast(error.message));
+});
+
 /* Checklist interactions */
 
 $("#checklist").addEventListener("click", event => {
@@ -964,23 +1126,18 @@ $("#checklist").addEventListener("click", event => {
   if (!item) return;
 
   if (event.target.closest(".delete-check")) {
-    state.checklist = state.checklist.filter(
-      entry => entry.id !== item.id
-    );
-
-    saveState();
-    renderChecklist();
-    toast("Checklist item deleted.");
+    apiRequest(`/api/teams/${encodeURIComponent(state.team.id)}/checkpoints/${encodeURIComponent(item.id)}`, { method: "DELETE" })
+      .then(() => loadTeamDashboard(state.team.id))
+      .then(() => toast("Checklist item deleted."));
     return;
   }
 
   if (event.target.closest(".checklist-check")) {
-    item.done = !item.done;
-
-    saveState();
-    renderChecklist();
-
-    toast(item.done ? "Checklist item completed." : "Item reopened.");
+    apiRequest(`/api/teams/${encodeURIComponent(state.team.id)}/checkpoints/${encodeURIComponent(item.id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ done: !item.done })
+    }).then(() => loadTeamDashboard(state.team.id))
+      .then(() => toast(item.done ? "Item reopened." : "Checklist item completed."));
   }
 });
 
@@ -989,7 +1146,7 @@ $("#addChecklistBtn").addEventListener("click", () => {
   $("#checklistDialog").showModal();
 });
 
-$("#checklistForm").addEventListener("submit", event => {
+$("#checklistForm").addEventListener("submit", async event => {
   event.preventDefault();
 
   const formData = new FormData(event.currentTarget);
@@ -997,17 +1154,18 @@ $("#checklistForm").addEventListener("submit", event => {
 
   if (!text) return;
 
-  state.checklist.push({
-    id: `c${Date.now()}`,
-    text,
-    done: false
-  });
-
-  saveState();
-  renderChecklist();
-  $("#checklistDialog").close();
-
-  toast("Checklist item added.");
+  if (!state.team.id) return toast("Create or select a team first.");
+  try {
+    await apiRequest(`/api/teams/${encodeURIComponent(state.team.id)}/checkpoints`, {
+      method: "POST",
+      body: JSON.stringify({ text })
+    });
+    await loadTeamDashboard(state.team.id);
+    $("#checklistDialog").close();
+    toast("Checklist item added.");
+  } catch (error) {
+    toast(error.message);
+  }
 });
 
 /* Add task */
@@ -1025,7 +1183,7 @@ $("#addTaskBtn").addEventListener("click", () => {
   $("#taskDialog").showModal();
 });
 
-$("#taskForm").addEventListener("submit", event => {
+$("#taskForm").addEventListener("submit", async event => {
   event.preventDefault();
 
   const data = new FormData(event.currentTarget);
@@ -1046,84 +1204,216 @@ $("#taskForm").addEventListener("submit", event => {
 
   const progress = Math.max(
     0,
-    Math.min(100, Number(data.get("progress")) || 0)
+    Math.min(99, Number(data.get("progress")) || 0)
   );
 
+  if (!state.team.id) return toast("Create or select a team first.");
+
   const task = {
-    id: `t${Date.now()}`,
     title,
     description,
     assignee,
     priority: String(data.get("priority")),
-    deadline,
-    points: Math.max(
-      0,
-      Math.min(1000, Math.round(Number(data.get("points")) || 0))
+    dueDate: deadline,
+    contributionPoints: Math.max(
+      1,
+      Math.min(1000, Math.round(Number(data.get("points")) || 1))
     ),
     progress,
-    status: progress === 100
-      ? "Completed"
-      : progress === 0
-        ? "To do"
-        : "In progress"
+    team: state.team.name,
+    teamId: state.team.id,
+    project: "",
   };
-
-  state.tasks.push(task);
-
-  const member = memberById(assignee);
-  member.lastActivity = "Just now";
-  member.lastActivityRank = 0;
-
-  updateMemberStatistics(assignee);
-
-  addActivity(member.name, `was assigned "${title}"`, "＋");
-
-  saveState();
-  activeFilter = "all";
-  renderAll();
-
-  $("#taskDialog").close();
-
-  toast("Task added successfully.");
+  try {
+    await apiRequest("/api/tasks", {
+      method: "POST",
+      body: JSON.stringify(task)
+    });
+    await loadTeamDashboard(state.team.id);
+    activeFilter = "all";
+    $("#taskDialog").close();
+    toast("Task added successfully.");
+  } catch (error) {
+    toast(error.message);
+  }
 });
 
 /* Create team */
 
-$("#createTeamBtn").addEventListener("click", () => {
+$("#createTeamBtn").addEventListener("click", async () => {
+  const createButton = $("#createTeamBtn");
+  createButton.disabled = true;
+  try {
+    const { users } = await apiRequest("/api/members");
+    memberDirectory = (users || []).map(user => ({
+      id: user.id,
+      name: user.name,
+      role: user.role || "Member",
+      skills: user.skills || []
+    }));
+    if (!memberDirectory.length) {
+      toast("No user accounts are available to add to a team.");
+      return;
+    }
+  } catch (error) {
+    toast(error.message);
+    return;
+  } finally {
+    createButton.disabled = false;
+  }
+
   $("#teamForm").reset();
   populateMemberSelects();
+  if ($("#teamMembers").options.length) $("#teamMembers").options[0].selected = true;
   $("#teamDialog").showModal();
 });
 
-$("#teamForm").addEventListener("submit", event => {
+$("#teamForm").addEventListener("submit", async event => {
   event.preventDefault();
+  const submitButton = event.currentTarget.querySelector('[type="submit"]');
 
   const data = new FormData(event.currentTarget);
   const name = String(data.get("name")).trim();
   const description = String(data.get("description")).trim();
   const head = String(data.get("head"));
+  const memberIds = data.getAll("members").map(String);
 
-  if (!name || !description || !memberById(head)) {
+  if (!name || !description || !memberDirectory.some(member => member.id === head)) {
     toast("Please complete all team fields.");
     return;
   }
 
-  state.team.name = name;
-  state.team.description = description;
-  state.team.head = head;
+  memberIds.push(head);
+  if (submitButton) submitButton.disabled = true;
+  try {
+    const { team } = await apiRequest("/api/teams", {
+      method: "POST",
+      body: JSON.stringify({
+        name,
+        description,
+        leaderId: head,
+        memberIds: [...new Set(memberIds)],
+      }),
+    });
+    $("#teamDialog").close();
+    await loadTeamsFromApi();
+    $("#teamSelector").value = team.id;
+    await loadTeamDashboard(team.id);
+    toast(`${name} was created.`);
+  } catch (error) {
+    toast(error.message);
+  } finally {
+    if (submitButton) submitButton.disabled = false;
+  }
+});
 
-  addActivity(
-    memberById(head).name,
-    `became the head of ${name}`,
-    "✳"
-  );
+$("#addMemberBtn").addEventListener("click", async () => {
+  try {
+    const { users } = await apiRequest("/api/members");
+    const currentIds = new Set(state.members.map(member => member.id));
+    memberDirectory = (users || [])
+      .filter(user => !currentIds.has(user.id))
+      .map(user => ({
+        id: user.id,
+        name: user.name,
+        email: user.email || "",
+        role: user.role || "Member",
+        skills: Array.isArray(user.skills) ? user.skills : []
+      }));
+    const select = $("#eligibleMemberSelect");
+    select.innerHTML = memberDirectory.map(member => `
+      <option value="${escapeHTML(member.id)}">
+        ${escapeHTML(member.name)}${member.email ? ` · ${escapeHTML(member.email)}` : ""}
+      </option>
+    `).join("");
+    if (!memberDirectory.length) {
+      toast("There are no eligible users to add.");
+      return;
+    }
+    $("#eligibleMemberDetails").textContent = "";
+    select.dispatchEvent(new Event("change"));
+    $("#addMemberDialog").showModal();
+  } catch (error) {
+    toast(error.message);
+  }
+});
 
-  saveState();
-  renderAll();
+$("#eligibleMemberSelect").addEventListener("change", event => {
+  const member = memberDirectory.find(user => user.id === event.target.value);
+  $("#eligibleMemberDetails").textContent = member
+    ? `${member.role}${member.skills.length ? ` · Skills: ${member.skills.join(", ")}` : ""}`
+    : "Select a user to view their profile details.";
+});
 
-  $("#teamDialog").close();
+$("#addMemberForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const button = event.currentTarget.querySelector('[type="submit"]');
+  const userId = String(new FormData(event.currentTarget).get("userId") || "");
+  if (!userId || !state.team.id) return toast("Choose a user and team first.");
+  if (button) button.disabled = true;
+  try {
+    await apiRequest(`/api/teams/${encodeURIComponent(state.team.id)}/members`, {
+      method: "POST",
+      body: JSON.stringify({ userId })
+    });
+    await loadTeamDashboard(state.team.id);
+    $("#addMemberDialog").close();
+    toast("Member added to the team.");
+  } catch (error) {
+    toast(error.message);
+  } finally {
+    if (button) button.disabled = false;
+  }
+});
 
-  toast(`${name} is now the displayed team.`);
+$("#awardContributionBtn").addEventListener("click", () => {
+  $("#contributionForm").reset();
+  $("#contributionMember").innerHTML = state.members.map(member => `
+    <option value="${escapeHTML(member.id)}">${escapeHTML(member.name)}</option>
+  `).join("");
+  if (!state.members.length) return toast("Add a team member before awarding points.");
+  $("#contributionDialog").showModal();
+});
+
+$("#contributionForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('[type="submit"]');
+  const data = new FormData(form);
+  const payload = {
+    teamId: state.team.id,
+    memberId: String(data.get("memberId") || ""),
+    points: Number(data.get("points")),
+    reason: String(data.get("reason") || "").trim()
+  };
+  if (!payload.teamId || !payload.memberId || !Number.isInteger(payload.points) || payload.points < 1 || !payload.reason) {
+    toast("Enter a member, a positive whole number of points, and a description.");
+    return;
+  }
+
+  if (button) button.disabled = true;
+  try {
+    const { contribution } = await apiRequest("/api/contributions", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    state.contributions = [contribution, ...(state.contributions || [])];
+    const member = memberById(contribution.memberId);
+    if (member) member.points += contribution.points;
+    renderAll();
+    $("#contributionDialog").close();
+    form.reset();
+    toast("Contribution saved.");
+    try {
+      await loadTeamDashboard(state.team.id);
+    } catch (error) {
+      toast(`Contribution saved, but the dashboard could not refresh: ${error.message}`);
+    }
+  } catch (error) {
+    toast(error.message);
+  } finally {
+    if (button) button.disabled = false;
+  }
 });
 
 /* Dialog close buttons */
@@ -1136,7 +1426,63 @@ $$("[data-close]").forEach(button => {
   });
 });
 
+$("#teamSelector").addEventListener("change", async event => {
+  try {
+    await loadTeamDashboard(event.target.value);
+  } catch (error) {
+    toast(error.message);
+  }
+});
+
+$("#addReminderBtn").addEventListener("click", () => {
+  $("#reminderForm").reset();
+  $("#reminderDialog").showModal();
+});
+
+$("#reminderForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const data = new FormData(event.currentTarget);
+  if (!state.team.id) return toast("Create or select a team first.");
+  try {
+    await apiRequest(`/api/teams/${encodeURIComponent(state.team.id)}/reminders`, {
+      method: "POST",
+      body: JSON.stringify({
+        title: String(data.get("title")).trim(),
+        dueDate: String(data.get("dueDate"))
+      })
+    });
+    await loadTeamDashboard(state.team.id);
+    $("#reminderDialog").close();
+    toast("Reminder added.");
+  } catch (error) {
+    toast(error.message);
+  }
+});
+
+$("#reminderList").addEventListener("click", async event => {
+  const row = event.target.closest("[data-reminder]");
+  if (!row) return;
+  const reminder = state.reminders.find(item => item.id === row.dataset.reminder);
+  if (!reminder) return;
+  try {
+    if (event.target.closest(".delete-check")) {
+      await apiRequest(`/api/teams/${encodeURIComponent(state.team.id)}/reminders/${encodeURIComponent(reminder.id)}`, { method: "DELETE" });
+      toast("Reminder deleted.");
+    } else {
+      await apiRequest(`/api/teams/${encodeURIComponent(state.team.id)}/reminders/${encodeURIComponent(reminder.id)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ completed: !reminder.completed })
+      });
+    }
+    await loadTeamDashboard(state.team.id);
+  } catch (error) {
+    toast(error.message);
+  }
+});
+
 /* Initialize */
 
-renderAll();
-saveState();
+loadTeamsFromApi().finally(() => {
+  renderAll();
+  saveState();
+});

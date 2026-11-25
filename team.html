@@ -59,6 +59,8 @@
             <span class="live-dot"></span> Workspace active
           </span>
 
+          <select id="teamSelector" aria-label="Choose team"></select>
+
           <button class="btn btn-primary" id="createTeamBtn" type="button">
             + Create Team
           </button>
@@ -132,11 +134,14 @@
               <h2>Team Members <span class="count-pill" id="memberCount">05</span></h2>
             </div>
 
-            <select id="memberSort" aria-label="Sort team members">
-              <option value="name">Name A–Z</option>
-              <option value="progress">Highest progress</option>
-              <option value="activity">Most recently active</option>
-            </select>
+            <div class="member-controls">
+              <button class="btn btn-outline" id="addMemberBtn" type="button" hidden>+ Add Member</button>
+              <select id="memberSort" aria-label="Sort team members">
+                <option value="name">Name A–Z</option>
+                <option value="progress">Highest progress</option>
+                <option value="activity">Most recently active</option>
+              </select>
+            </div>
           </div>
 
           <div class="member-search">
@@ -174,6 +179,10 @@
 
           <button class="btn btn-outline btn-block" id="addChecklistBtn" type="button">
             + Add checklist item
+          </button>
+          <div class="reminder-list" id="reminderList"></div>
+          <button class="btn btn-outline btn-block" id="addReminderBtn" type="button">
+            + Add reminder
           </button>
         </aside>
 
@@ -258,16 +267,23 @@
               <p class="eyebrow">TEAM CONTRIBUTIONS</p>
               <h2>Top Performers</h2>
             </div>
-            <label class="performer-sort-control">
-              <span>Sort points</span>
-              <select id="performerSort" aria-label="Sort performers by contribution points">
-                <option value="desc">Highest first</option>
-                <option value="asc">Lowest first</option>
-              </select>
-            </label>
+            <div class="performer-actions">
+              <button class="btn btn-outline" id="awardContributionBtn" type="button" hidden>+ Award points</button>
+              <label class="performer-sort-control">
+                <span>Sort points</span>
+                <select id="performerSort" aria-label="Sort performers by contribution points">
+                  <option value="desc">Highest first</option>
+                  <option value="asc">Lowest first</option>
+                </select>
+              </label>
+            </div>
           </div>
 
           <div id="topPerformers" class="top-performers"></div>
+          <div class="contribution-history">
+            <h3>Recent contribution history <small id="teamContributionTotal"></small></h3>
+            <div id="contributionHistory"></div>
+          </div>
 
           <div class="team-overview">
             <div class="progress-label">
@@ -290,6 +306,55 @@
 
     </main>
   </div>
+
+  <dialog id="addMemberDialog">
+    <form id="addMemberForm">
+      <div class="dialog-header">
+        <div>
+          <p class="eyebrow">GROW YOUR TEAM</p>
+          <h2>Add a Member</h2>
+        </div>
+        <button class="dialog-close" type="button" data-close="addMemberDialog" aria-label="Close">×</button>
+      </div>
+      <label>
+        Existing Orbit user
+        <select name="userId" id="eligibleMemberSelect" required></select>
+      </label>
+      <p class="muted-text" id="eligibleMemberDetails">Select a user to view their profile details.</p>
+      <div class="dialog-actions">
+        <button class="btn btn-outline" type="button" data-close="addMemberDialog">Cancel</button>
+        <button class="btn btn-primary" type="submit">Add Member</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="contributionDialog">
+    <form id="contributionForm">
+      <div class="dialog-header">
+        <div>
+          <p class="eyebrow">RECOGNIZE THE WORK</p>
+          <h2>Award Contribution Points</h2>
+        </div>
+        <button class="dialog-close" type="button" data-close="contributionDialog" aria-label="Close">×</button>
+      </div>
+      <label>
+        Team member
+        <select name="memberId" id="contributionMember" required></select>
+      </label>
+      <label>
+        Points
+        <input name="points" type="number" min="1" max="1000" step="1" required>
+      </label>
+      <label>
+        Description
+        <textarea name="reason" rows="3" maxlength="300" required placeholder="Describe the contribution"></textarea>
+      </label>
+      <div class="dialog-actions">
+        <button class="btn btn-outline" type="button" data-close="contributionDialog">Cancel</button>
+        <button class="btn btn-primary" type="submit">Save Contribution</button>
+      </div>
+    </form>
+  </dialog>
 
   <!-- Create task dialog -->
   <dialog id="taskDialog">
@@ -339,13 +404,13 @@
 
         <label>
           Initial progress (%)
-          <input name="progress" type="number" min="0" max="100" value="0">
+          <input name="progress" type="number" min="0" max="99" value="0">
         </label>
       </div>
 
       <label>
         Contribution points for completing this task
-        <input name="points" type="number" min="0" max="1000" step="1"
+        <input name="points" type="number" min="1" max="1000" step="1"
                value="50" required>
       </label>
 
@@ -387,6 +452,13 @@
         <select name="head" id="teamHead" required></select>
       </label>
 
+      <label>
+        Team members
+        <select name="members" id="teamMembers" multiple size="4"
+                aria-describedby="teamMembersHelp"></select>
+        <small id="teamMembersHelp">Select one or more members. The team head is included automatically.</small>
+      </label>
+
       <div class="dialog-actions">
         <button class="btn btn-outline" type="button" data-close="teamDialog">
           Cancel
@@ -397,6 +469,30 @@
   </dialog>
 
   <!-- Add checklist item dialog -->
+  <dialog id="reminderDialog">
+    <form id="reminderForm">
+      <div class="dialog-header">
+        <div>
+          <p class="eyebrow">TEAM REMINDER</p>
+          <h2>Add Reminder</h2>
+        </div>
+        <button class="dialog-close" type="button" data-close="reminderDialog" aria-label="Close">×</button>
+      </div>
+      <label>
+        Reminder
+        <input name="title" required maxlength="120" placeholder="Submit the weekly update">
+      </label>
+      <label>
+        Due date
+        <input name="dueDate" type="date" required>
+      </label>
+      <div class="dialog-actions">
+        <button class="btn btn-outline" type="button" data-close="reminderDialog">Cancel</button>
+        <button class="btn btn-primary" type="submit">Add Reminder</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="checklistDialog">
     <form id="checklistForm">
       <div class="dialog-header">
