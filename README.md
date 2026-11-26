@@ -6,10 +6,10 @@ The CE-1 frontend is retained as static HTML, CSS and JavaScript. The Node.js ba
 
 ## Team members
 
-- Aarav Sharma
-- Ishita Verma
-- Rohan Kapoor
-- Ananya Singh
+- Riya Sood
+- Meghna Rana
+- Vaibhavi Jha
+- Vanshita Taneja
 
 ## Project phases
 
@@ -59,7 +59,7 @@ The review workspace is available at [http://localhost:3000/approvals.html](http
 The dashboard uses authenticated, database-backed data from these endpoints:
 
 - `GET /api/organisation/dashboard` returns task totals, completion percentage, total teams and organisation members, team completion rates, member task/contribution totals, top contributors, recent tasks, upcoming deadlines, and upcoming events. Completed tasks are those with status `Completed`; pending tasks are all other statuses. Overdue means an incomplete task with a `YYYY-MM-DD` due date earlier than the current UTC date. Team productivity is completed tasks divided by all team tasks; top performers are ranked by recorded all-time contribution points.
-- `GET /api/organisation/workspace` returns the authenticated user's workspace view: admins/managers see organisation-wide tasks and teams, team leaders see their teams and their tasks, and members see tasks assigned to them plus tasks in their teams. The response includes task totals, deadlines, team productivity, the user's contribution points, recent contribution activity, and upcoming events. Both dashboard endpoints return `recentSubmissions: []` with `submissionTrackingAvailable: false` because this codebase has no Submission model, collection, or submission API; the UI identifies that limitation rather than presenting sample records.
+- `GET /api/organisation/workspace` returns the authenticated user's workspace view: admins/managers see organisation-wide tasks and teams, team leaders see their teams and their tasks, and members see tasks assigned to them plus tasks in their teams. The response includes task totals, deadlines, team productivity, the user's contribution points, recent contribution activity, and upcoming events. Both dashboard endpoints return `recentSubmissions: []` with `submissionTrackingAvailable: false`: the Submission model defines the data schema, but submission APIs and dashboard integration are not implemented yet.
 - Dashboard events: `GET|POST /api/organisation/events`, `GET|PATCH|PUT|DELETE /api/organisation/events/:id`, `POST /api/organisation/events/:id/checklist`, `PATCH|DELETE /api/organisation/events/:id/checklist/:itemId`.
 - Dashboard announcements: `GET|POST /api/organisation/announcements`, `GET|PATCH|PUT|DELETE /api/organisation/announcements/:id`.
 - Workspace: `GET /api/organisation/workspace`, `GET /api/organizations/me`, `GET /api/organizations/members`, manager/admin `GET /api/organizations/me/invite-code`, and admin-only `POST /api/organizations/me/invite-code`.
