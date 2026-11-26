@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Announcements | Orbit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/management.css">
+  <link rel="stylesheet" href="css/sidebar.css">
+  <script src="js/navigation.js" defer></script>
+  <script src="js/announcements.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="dashboard.html" aria-label="Orbit home">
+        <span class="brand-mark" aria-hidden="true">◎</span><span>Orbit</span>
+      </a>
+      <nav class="navigation" aria-label="Main navigation">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="team.html">Teams</a>
+        <a href="create-task.html">Create Task</a>
+        <a href="approvals.html">Approvals</a>
+        <a href="dashboard.html#events-title">Events</a>
+        <a class="active" href="announcements.html" aria-current="page">Announcements</a>
+        <a href="workspace.html">Workspace</a>
+      </nav>
+      <div class="sidebar-footer">
+        <a class="logout-link" href="landing.html">Log out</a>
+      </div>
+    </aside>
+
+    <main class="management-main">
+      <header class="management-header">
+        <div>
+          <p class="eyebrow">Workspace / Announcements</p>
+          <h1>Announcements</h1>
+          <p>Share important updates with your workspace.</p>
+        </div>
+        <label class="filter-field" for="priority-filter">Priority
+          <select id="priority-filter">
+            <option value="">All priorities</option>
+            <option>Normal</option>
+            <option>Important</option>
+            <option>Urgent</option>
+          </select>
+        </label>
+      </header>
+
+      <p class="feedback" id="announcement-feedback" role="status" aria-live="polite"></p>
+      <div class="management-grid">
+        <section class="management-card" aria-labelledby="announcement-list-heading">
+          <div class="card-heading"><h2 id="announcement-list-heading">Latest updates</h2></div>
+          <ul class="record-list announcement-list" id="announcement-list" aria-live="polite">
+            <li class="empty-state">Loading announcements…</li>
+          </ul>
+          <div class="pagination-controls">
+            <button class="button button-secondary" id="previous-page" type="button">Previous</button>
+            <span id="page-label" aria-live="polite">Page 1</span>
+            <button class="button button-secondary" id="next-page" type="button">Next</button>
+          </div>
+        </section>
+
+        <section class="management-card" id="announcement-form-card" aria-labelledby="announcement-form-heading">
+          <h2 id="announcement-form-heading">Create announcement</h2>
+          <form id="announcement-form">
+            <label for="announcement-title">Title
+              <input id="announcement-title" name="title" minlength="2" maxlength="120" required>
+            </label>
+            <label for="announcement-priority">Priority
+              <select id="announcement-priority" name="priority">
+                <option>Normal</option>
+                <option>Important</option>
+                <option>Urgent</option>
+              </select>
+            </label>
+            <label for="announcement-message">Message
+              <textarea id="announcement-message" name="message" rows="8" maxlength="10000" required></textarea>
+            </label>
+            <div class="button-row">
+              <button class="button button-primary" type="submit">Publish announcement</button>
+              <button class="button button-secondary" id="cancel-announcement-edit" type="button" hidden>Cancel edit</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

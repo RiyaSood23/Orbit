@@ -551,6 +551,16 @@ h1, h2, h3, p { margin-top: 0; }
   font-weight: 700;
 }
 
+.org-count-summary {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.org-count-summary strong {
+  color: var(--sage-700);
+}
+
 .filter-chip {
   padding: 6px 14px;
   border-radius: 999px;
@@ -1339,5 +1349,279 @@ h1, h2, h3, p { margin-top: 0; }
 @media (max-width: 480px) {
   .team-cards-inner {
     grid-template-columns: 1fr;
+  }
+}
+
+.teams-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.team-card-body {
+  width: 100%;
+  padding: 18px;
+}
+
+.team-card-body h3 {
+  margin-bottom: 8px;
+}
+
+.team-card .team-lead {
+  margin: 0 0 12px;
+  font-size: 12px;
+}
+
+.team-card .team-stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 11px;
+}
+
+.team-card .progress-wrap {
+  margin: 12px 0;
+}
+
+.team-card .overdue-tag {
+  margin: 8px 0 0;
+  font-size: 11px;
+}
+
+.bottom-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.org-overview,
+.events-panel {
+  grid-column: 1 / -1;
+}
+
+.dashboard-state {
+  margin: 0;
+  padding: 16px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.dashboard-state.is-error,
+.form-error {
+  color: #b42318;
+}
+
+.deadline-list,
+.performer-list,
+.member-contribution-list,
+.announcement-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.member-contribution-list,
+.announcement-list,
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.member-contribution-item,
+.announcement-entry,
+.event-entry {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
+.member-contribution-item,
+.announcement-entry {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.member-contribution-metrics {
+  display: grid;
+  gap: 4px;
+  text-align: right;
+  color: var(--muted);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.announcement-copy {
+  min-width: 0;
+}
+
+.announcement-copy p {
+  margin: 6px 0;
+  color: var(--muted);
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.announcement-copy time {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.record-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.record-action,
+.secondary-btn {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--sage-700);
+  background: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.record-action:hover,
+.secondary-btn:hover {
+  border-color: var(--sage-400);
+  background: var(--sage-50);
+}
+
+.event-entry .event-card {
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.event-entry .event-details {
+  min-width: 0;
+  flex: 1;
+}
+
+.event-entry .event-details p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.event-entry .checklist-item > span {
+  flex: 1;
+}
+
+.checklist-add-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.checklist-add-form input,
+.dashboard-dialog input,
+.dashboard-dialog textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--ink);
+  background: #fff;
+  font: inherit;
+}
+
+.dashboard-dialog {
+  width: min(520px, calc(100vw - 32px));
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  color: var(--ink);
+  background: #fff;
+  box-shadow: var(--shadow-hover);
+}
+
+.dashboard-dialog::backdrop {
+  background: rgba(15, 30, 22, 0.48);
+  backdrop-filter: blur(3px);
+}
+
+.dashboard-dialog form,
+.dashboard-dialog label {
+  display: grid;
+  gap: 10px;
+}
+
+.dashboard-dialog form {
+  gap: 16px;
+}
+
+.dashboard-dialog label {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dialog-heading,
+.dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dialog-heading h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.dialog-close {
+  color: var(--muted);
+  font-size: 26px;
+}
+
+.form-error {
+  min-height: 1em;
+  margin: 0;
+  font-size: 12px;
+}
+
+@media (max-width: 1024px) {
+  .bottom-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .org-overview,
+  .events-panel {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .member-contribution-item,
+  .announcement-entry {
+    flex-direction: column;
+  }
+
+  .member-contribution-metrics {
+    text-align: left;
+  }
+
+  .event-entry .event-card {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .event-entry .record-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .checklist-add-form {
+    flex-direction: column;
   }
 }

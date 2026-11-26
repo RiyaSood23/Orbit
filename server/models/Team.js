@@ -32,6 +32,7 @@ const reminderSchema = new mongoose.Schema(
 const teamSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true },
+    organizationId: { type: String, ref: "Organization", required: true, index: true },
     name: { type: String, required: true, trim: true, minlength: 2, maxlength: 60 },
     description: { type: String, required: true, trim: true, minlength: 2, maxlength: 500 },
     leaderId: { type: String, ref: "User", required: true },

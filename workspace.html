@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workspace | Orbit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/management.css">
+  <link rel="stylesheet" href="css/sidebar.css">
+  <script src="js/navigation.js" defer></script>
+  <script src="js/workspace.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="dashboard.html" aria-label="Orbit home">
+        <span class="brand-mark" aria-hidden="true">◎</span><span>Orbit</span>
+      </a>
+      <nav class="navigation" aria-label="Main navigation">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="team.html">Teams</a>
+        <a href="create-task.html">Create Task</a>
+        <a href="approvals.html">Approvals</a>
+        <a href="dashboard.html#events-title">Events</a>
+        <a href="announcements.html">Announcements</a>
+        <a class="active" href="workspace.html" aria-current="page">Workspace</a>
+      </nav>
+      <div class="sidebar-footer">
+        <a class="logout-link" href="landing.html">Log out</a>
+      </div>
+    </aside>
+
+    <main class="management-main">
+      <header class="management-header">
+        <div>
+          <p class="eyebrow">Your workspace</p>
+          <h1>Work and team overview</h1>
+          <p>Review your tasks, deadlines, team progress, activity, and workspace members.</p>
+        </div>
+      </header>
+
+      <p class="feedback" id="workspace-feedback" role="status" aria-live="polite"></p>
+
+      <section class="management-card" aria-labelledby="workspace-overview-heading">
+        <div class="card-heading">
+          <div>
+            <h2 id="workspace-overview-heading">Workspace overview</h2>
+            <p id="workspace-scope">Loading your workspace data…</p>
+          </div>
+          <span class="record-count"><strong id="workspace-points">—</strong> contribution points</span>
+        </div>
+        <div class="workspace-stat-grid">
+          <div class="workspace-stat"><strong id="workspace-task-total">—</strong><span>Tasks</span></div>
+          <div class="workspace-stat"><strong id="workspace-task-completed">—</strong><span>Completed</span></div>
+          <div class="workspace-stat"><strong id="workspace-task-pending">—</strong><span>Pending / incomplete</span></div>
+          <div class="workspace-stat"><strong id="workspace-task-overdue">—</strong><span>Overdue</span></div>
+          <div class="workspace-stat"><strong id="workspace-team-total">—</strong><span>Teams</span></div>
+          <div class="workspace-stat"><strong id="workspace-member-total">—</strong><span>Team members</span></div>
+        </div>
+      </section>
+
+      <div class="workspace-data-grid">
+        <section class="management-card" aria-labelledby="workspace-tasks-heading">
+          <div class="card-heading"><h2 id="workspace-tasks-heading">Tasks</h2></div>
+          <ul class="record-list" id="workspace-task-list" aria-live="polite">
+            <li class="empty-state">Loading tasks…</li>
+          </ul>
+        </section>
+        <section class="management-card" aria-labelledby="workspace-deadlines-heading">
+          <div class="card-heading"><h2 id="workspace-deadlines-heading">Upcoming deadlines</h2></div>
+          <ul class="record-list" id="workspace-deadlines-list" aria-live="polite">
+            <li class="empty-state">Loading deadlines…</li>
+          </ul>
+        </section>
+        <section class="management-card" aria-labelledby="workspace-teams-heading">
+          <div class="card-heading"><h2 id="workspace-teams-heading">Team progress</h2></div>
+          <ul class="record-list" id="workspace-progress-list" aria-live="polite">
+            <li class="empty-state">Loading team progress…</li>
+          </ul>
+        </section>
+        <section class="management-card" aria-labelledby="workspace-activity-heading">
+          <div class="card-heading"><h2 id="workspace-activity-heading">Recent activity</h2></div>
+          <ul class="record-list" id="workspace-activity-list" aria-live="polite">
+            <li class="empty-state">Loading activity…</li>
+          </ul>
+        </section>
+        <section class="management-card" aria-labelledby="workspace-events-heading">
+          <div class="card-heading"><h2 id="workspace-events-heading">Upcoming events</h2></div>
+          <ul class="record-list" id="workspace-events-list" aria-live="polite">
+            <li class="empty-state">Loading events…</li>
+          </ul>
+        </section>
+        <section class="management-card" aria-labelledby="workspace-submissions-heading">
+          <div class="card-heading"><h2 id="workspace-submissions-heading">Recent submissions</h2></div>
+          <ul class="record-list" id="workspace-submissions-list" aria-live="polite">
+            <li class="empty-state">Loading submissions…</li>
+          </ul>
+        </section>
+      </div>
+
+      <section class="management-card workspace-card" aria-labelledby="workspace-heading">
+        <p class="eyebrow">Current workspace</p>
+        <h2 id="workspace-heading">Workspace invitation</h2>
+        <p id="workspace-name" class="workspace-name">Loading workspace…</p>
+        <p>Share this invitation code with colleagues who should join this workspace. Rotating it invalidates the previous code.</p>
+        <div class="invite-code-row">
+          <code id="invite-code" aria-live="polite">••••••••••••</code>
+          <button class="button button-secondary" id="copy-invite" type="button">Copy</button>
+          <button class="button button-secondary" id="rotate-invite" type="button" hidden>Rotate code</button>
+        </div>
+        <p class="role-note" id="invite-note"></p>
+      </section>
+
+      <section class="management-card" aria-labelledby="members-heading">
+        <div class="card-heading">
+          <h2 id="members-heading">Members</h2>
+          <span id="member-count" class="record-count"></span>
+        </div>
+        <ul class="record-list" id="member-list" aria-live="polite">
+          <li class="empty-state">Loading members…</li>
+        </ul>
+      </section>
+
+      <section class="management-card team-management-card" aria-labelledby="teams-heading">
+        <div class="card-heading">
+          <div>
+            <h2 id="teams-heading">Teams</h2>
+            <p>Create teams and manage their workspace members.</p>
+          </div>
+          <span id="team-count" class="record-count"></span>
+        </div>
+        <form id="team-form" class="team-form">
+          <label for="team-name">Team name
+            <input id="team-name" name="name" minlength="2" maxlength="60" required placeholder="e.g. Product">
+          </label>
+          <label for="team-description">Description
+            <input id="team-description" name="description" minlength="2" maxlength="500" required placeholder="What does this team do?">
+          </label>
+          <label for="team-leader">Team leader
+            <select id="team-leader" name="leaderId" required></select>
+          </label>
+          <fieldset class="team-members-field">
+            <legend>Team members</legend>
+            <div id="team-member-options" class="team-member-options"></div>
+          </fieldset>
+          <div class="button-row">
+            <button class="button button-primary" id="save-team" type="submit">Create team</button>
+            <button class="button button-secondary" id="cancel-team-edit" type="button" hidden>Cancel edit</button>
+          </div>
+        </form>
+        <p class="role-note" id="team-permission-note"></p>
+        <ul class="record-list" id="team-list" aria-live="polite">
+          <li class="empty-state">Loading teams…</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

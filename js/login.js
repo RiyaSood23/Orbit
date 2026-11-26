@@ -163,6 +163,7 @@ signupForm.addEventListener("submit", (event) => {
       name: formData.get("name"),
       email: formData.get("email"),
       password: formData.get("password"),
+      inviteCode: formData.get("inviteCode"),
     });
   });
 });

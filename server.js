@@ -22,6 +22,16 @@ const {
   calculateTeamMemberProgress,
 } = require("./server/routes/member3");
 const Contribution = require("./server/models/Contribution");
+const Organization = require("./server/models/Organization");
+const Event = require("./server/models/Event");
+const Announcement = require("./server/models/Announcement");
+const Team = require("./server/models/Team");
+const User = require("./server/models/User");
+const {
+  handleOrganisation,
+  OrganisationRouteError,
+} = require("./server/routes/organisation");
+const { DEFAULT_ORGANIZATION_ID } = require("./server/organization");
 
 const port = Number(process.env.PORT) || 3000;
 const rootDirectory = __dirname;
@@ -232,13 +242,17 @@ async function migrateLegacyStore() {
         legacy.users.map((user, index) => ({
           ...user,
           role: index === 0 ? "admin" : "member",
+          organizationId: user.organizationId || DEFAULT_ORGANIZATION_ID,
           passwordFormat: "scrypt",
           updatedAt: new Date().toISOString(),
         }))
       );
     }
     if (await tasksCollection.countDocuments() === 0 && Array.isArray(legacy.tasks) && legacy.tasks.length > 0) {
-      await tasksCollection.insertMany(legacy.tasks);
+      await tasksCollection.insertMany(legacy.tasks.map((task) => ({
+        ...task,
+        organizationId: task.organizationId || DEFAULT_ORGANIZATION_ID,
+      })));
     }
   } catch (error) {
     console.warn("Legacy store migration skipped:", error.message);
@@ -250,9 +264,14 @@ async function createAccount(request, response) {
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = typeof body.password === "string" ? body.password : "";
+  const inviteCode = typeof body.inviteCode === "string" ? body.inviteCode.trim().toUpperCase() : "";
 
   if (name.length < 2 || name.length > 80) {
     throw new HttpError(400, "Enter a name between 2 and 80 characters.");
+  }
+  if (body.inviteCode !== undefined &&
+      (typeof body.inviteCode !== "string" || body.inviteCode.trim().length > 32)) {
+    throw new HttpError(400, "Enter a valid workspace invitation code.");
   }
   if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new HttpError(400, "Enter a valid email address.");
@@ -264,6 +283,13 @@ async function createAccount(request, response) {
     throw new HttpError(409, "An account with this email already exists. Sign in instead.");
   }
 
+  let organizationId = DEFAULT_ORGANIZATION_ID;
+  if (inviteCode) {
+    const organization = await Organization.findOne({ inviteCode }).select("id").lean();
+    if (!organization) throw new HttpError(400, "The workspace invitation code is invalid or expired.");
+    organizationId = organization.id;
+  }
+
   const role = (await usersCollection.countDocuments()) === 0 ? "admin" : "member";
   const user = {
     id: crypto.randomUUID(),
@@ -272,6 +298,7 @@ async function createAccount(request, response) {
     passwordHash: await bcrypt.hash(password, 12),
     passwordFormat: "bcrypt",
     role,
+    organizationId,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -369,12 +396,15 @@ async function updateProfile(request, response, user) {
   sendJson(response, 200, { user: publicUser(result) });
 }
 
-async function listUsers(request, response) {
-  const users = await usersCollection.find({}, { projection: { _id: 0, passwordHash: 0, passwordFormat: 0, salt: 0 } }).toArray();
+async function listUsers(request, response, user) {
+  const users = await usersCollection.find(
+    { organizationId: user.organizationId || DEFAULT_ORGANIZATION_ID },
+    { projection: { _id: 0, passwordHash: 0, passwordFormat: 0, salt: 0 } }
+  ).toArray();
   sendJson(response, 200, { users: users.map(publicUser) });
 }
 
-async function updateUserRole(request, response) {
+async function updateUserRole(request, response, currentUser) {
   const body = await readJsonBody(request);
   const id = typeof body.id === "string" ? body.id : "";
   const role = typeof body.role === "string" ? body.role : "";
@@ -382,7 +412,7 @@ async function updateUserRole(request, response) {
     throw new HttpError(400, "Role must be member, manager, or admin.");
   }
   const user = await usersCollection.findOneAndUpdate(
-    { id },
+    { id, organizationId: currentUser.organizationId || DEFAULT_ORGANIZATION_ID },
     { $set: { role, updatedAt: new Date().toISOString() } },
     { returnDocument: "after" }
   );
@@ -405,10 +435,10 @@ async function createTask(request, response, user) {
   if (teamId) {
     const Team = mongoose.models.Team;
     if (!Team) throw new HttpError(500, "Team management is unavailable.");
-    if (!(await Team.exists({ id: teamId }))) {
+    if (!(await Team.exists({ id: teamId, organizationId: user.organizationId }))) {
       throw new HttpError(404, "Team not found.");
     }
-    if (!(await Team.exists({ id: teamId, "members.userId": assignee }))) {
+    if (!(await Team.exists({ id: teamId, organizationId: user.organizationId, "members.userId": assignee }))) {
       throw new HttpError(400, "The assignee must be a member of the selected team.");
     }
   }
@@ -427,6 +457,7 @@ async function createTask(request, response, user) {
 
   const task = {
     id: crypto.randomUUID(),
+    organizationId: user.organizationId || DEFAULT_ORGANIZATION_ID,
     title, team, teamId: teamId || null, assignee, contributionPoints, project, priority, dueDate, description,
     progress,
     status: teamId
@@ -471,7 +502,7 @@ async function updateTask(request, response, user, taskId) {
     throw new HttpError(400, "Contribution points must be a whole number from 1 to 1000.");
   }
 
-  const task = await tasksCollection.findOne({ id: taskId });
+  const task = await tasksCollection.findOne({ id: taskId, organizationId: user.organizationId });
   if (!task) throw new HttpError(404, "Task not found.");
 
   if (hasAssignee) {
@@ -482,7 +513,7 @@ async function updateTask(request, response, user, taskId) {
     }
     const Team = mongoose.models.Team;
     const team = typeof task.teamId === "string" && Team
-      ? await Team.findOne({ id: task.teamId }).lean()
+      ? await Team.findOne({ id: task.teamId, organizationId: user.organizationId }).lean()
       : null;
     if (!team) throw new HttpError(404, "The task's team was not found.");
     if (!["manager", "admin"].includes(user.role || "member") && team.leaderId !== user.id) {
@@ -495,7 +526,7 @@ async function updateTask(request, response, user, taskId) {
       throw new HttpError(404, "The new assignee was not found.");
     }
     const updatedTask = await tasksCollection.findOneAndUpdate(
-      { id: taskId, status: { $ne: "Completed" } },
+      { id: taskId, organizationId: user.organizationId, status: { $ne: "Completed" } },
       { $set: { assignee: newAssignee, updatedAt: new Date().toISOString() } },
       { returnDocument: "after" }
     );
@@ -511,14 +542,14 @@ async function updateTask(request, response, user, taskId) {
     }
     const Team = mongoose.models.Team;
     const team = typeof task.teamId === "string" && Team
-      ? await Team.findOne({ id: task.teamId }).lean()
+      ? await Team.findOne({ id: task.teamId, organizationId: user.organizationId }).lean()
       : null;
     if (!team) throw new HttpError(404, "The task's team was not found.");
     if (!["manager", "admin"].includes(user.role || "member") && team.leaderId !== user.id) {
       throw new HttpError(403, "Only the team leader or an administrator can change task points.");
     }
     const updatedTask = await tasksCollection.findOneAndUpdate(
-      { id: taskId, status: { $ne: "Completed" } },
+      { id: taskId, organizationId: user.organizationId, status: { $ne: "Completed" } },
       { $set: { contributionPoints, updatedAt: new Date().toISOString() } },
       { returnDocument: "after" }
     );
@@ -540,7 +571,7 @@ async function updateTask(request, response, user, taskId) {
     updates.progress = progress;
     updates.status = progress === 0 ? "To do" : "In progress";
     const updatedTask = await tasksCollection.findOneAndUpdate(
-      { id: taskId, assignee: user.id },
+      { id: taskId, organizationId: user.organizationId, assignee: user.id },
       { $set: updates },
       { returnDocument: "after" }
     );
@@ -558,7 +589,7 @@ async function updateTask(request, response, user, taskId) {
   let contribution;
   try {
     await session.withTransaction(async () => {
-      const currentTask = await tasksCollection.findOne({ id: taskId }, { session });
+      const currentTask = await tasksCollection.findOne({ id: taskId, organizationId: user.organizationId }, { session });
       if (!currentTask) throw new HttpError(404, "Task not found.");
       if (currentTask.assignee !== user.id) {
         throw new HttpError(403, "Only the assigned member can update this task's progress.");
@@ -573,7 +604,10 @@ async function updateTask(request, response, user, taskId) {
       }
 
       const Team = mongoose.models.Team;
-      if (!Team || !(await Team.exists({ id: currentTask.teamId }).session(session))) {
+      if (!Team || !(await Team.exists({
+        id: currentTask.teamId,
+        organizationId: user.organizationId,
+      }).session(session))) {
         throw new HttpError(404, "The task's team was not found.");
       }
 
@@ -585,7 +619,7 @@ async function updateTask(request, response, user, taskId) {
       }
 
       const completedTask = await tasksCollection.findOneAndUpdate(
-        { id: taskId, assignee: user.id, status: { $ne: "Completed" } },
+        { id: taskId, organizationId: user.organizationId, assignee: user.id, status: { $ne: "Completed" } },
         {
           $set: {
             progress: 100,
@@ -598,7 +632,7 @@ async function updateTask(request, response, user, taskId) {
       );
 
       if (!completedTask) {
-        const latestTask = await tasksCollection.findOne({ id: taskId }, { session });
+        const latestTask = await tasksCollection.findOne({ id: taskId, organizationId: user.organizationId }, { session });
         if (!latestTask) throw new HttpError(404, "Task not found.");
         if (latestTask.assignee !== user.id) {
           throw new HttpError(403, "Only the assigned member can update this task's progress.");
@@ -630,12 +664,14 @@ async function updateTask(request, response, user, taskId) {
 }
 
 async function deleteTask(request, response, user, taskId) {
-  const task = await tasksCollection.findOne({ id: taskId });
+  const task = await tasksCollection.findOne({ id: taskId, organizationId: user.organizationId });
   if (!task) throw new HttpError(404, "Task not found.");
 
   if (typeof task.teamId === "string" && task.teamId) {
     const Team = mongoose.models.Team;
-    const team = Team ? await Team.findOne({ id: task.teamId }).lean() : null;
+    const team = Team
+      ? await Team.findOne({ id: task.teamId, organizationId: user.organizationId }).lean()
+      : null;
     if (!team) throw new HttpError(404, "The task's team was not found.");
     if (!["manager", "admin"].includes(user.role || "member") && team.leaderId !== user.id) {
       throw new HttpError(403, "Only the team leader or an administrator can delete tasks.");
@@ -644,7 +680,7 @@ async function deleteTask(request, response, user, taskId) {
     throw new HttpError(403, "You cannot delete this task.");
   }
 
-  const result = await tasksCollection.deleteOne({ id: taskId });
+  const result = await tasksCollection.deleteOne({ id: taskId, organizationId: user.organizationId });
   if (!result.deletedCount) throw new HttpError(404, "Task not found.");
   sendJson(response, 200, {
     success: true,
@@ -660,6 +696,30 @@ async function localDateString(date) {
 }
 
 async function handleApiRequest(request, response, pathname) {
+  const organisationApi =
+    pathname === "/api/organisation" ||
+    pathname.startsWith("/api/organisation/") ||
+    pathname === "/api/organizations" ||
+    pathname.startsWith("/api/organizations/") ||
+    pathname === "/api/announcements" ||
+    pathname.startsWith("/api/announcements/");
+  if (organisationApi) {
+    const user = await authenticate(request);
+    try {
+      const result = await handleOrganisation(request, response, pathname, {
+        user,
+        db,
+        readJsonBody,
+      });
+      if (result !== false) return true;
+    } catch (error) {
+      if (error instanceof OrganisationRouteError) {
+        throw new HttpError(error.status, error.message);
+      }
+      throw error;
+    }
+  }
+
   const member3Api =
     pathname === "/api/teams" ||
     pathname.startsWith("/api/teams/") ||
@@ -767,7 +827,14 @@ async function serveStatic(request, response, pathname) {
     return;
   }
 
-  const protectedPages = new Set(["/create-task.html", "/dashboard.html", "/team.html", "/approvals.html"]);
+  const protectedPages = new Set([
+    "/create-task.html",
+    "/dashboard.html",
+    "/team.html",
+    "/approvals.html",
+    "/workspace.html",
+    "/announcements.html",
+  ]);
   if (protectedPages.has(pathname)) {
     if (!(await authenticate(request))) {
       response.writeHead(302, { Location: "/index.html", "Cache-Control": "no-store" });
@@ -827,16 +894,41 @@ async function startServer() {
   }
 
   await mongoose.connect(mongoUri, { dbName: mongoDbName });
-  await Contribution.migrateLegacyHistory();
-  await Contribution.init();
   db = mongoose.connection.db;
   usersCollection = db.collection("users");
   tasksCollection = db.collection("tasks");
+  const defaultOrganization = await Organization.findOneAndUpdate(
+    { id: DEFAULT_ORGANIZATION_ID },
+    { $setOnInsert: { id: DEFAULT_ORGANIZATION_ID, name: "Orbit Workspace" } },
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true }
+  );
+  if (!defaultOrganization.inviteCode) {
+    defaultOrganization.inviteCode = crypto.randomBytes(6).toString("hex").toUpperCase();
+    await defaultOrganization.save();
+  }
+  await Promise.all([
+    User.updateMany(
+      { organizationId: { $exists: false } },
+      { $set: { organizationId: DEFAULT_ORGANIZATION_ID } }
+    ),
+    Team.updateMany(
+      { organizationId: { $exists: false } },
+      { $set: { organizationId: DEFAULT_ORGANIZATION_ID } }
+    ),
+    tasksCollection.updateMany(
+      { organizationId: { $exists: false } },
+      { $set: { organizationId: DEFAULT_ORGANIZATION_ID } }
+    ),
+  ]);
+  await Contribution.migrateLegacyHistory();
+  await Contribution.init();
+  await Promise.all([Event.init(), Announcement.init()]);
 
   await usersCollection.createIndex({ email: 1 }, { unique: true });
   await usersCollection.createIndex({ id: 1 }, { unique: true });
   await tasksCollection.createIndex({ id: 1 }, { unique: true });
   await tasksCollection.createIndex({ createdBy: 1 });
+  await tasksCollection.createIndex({ organizationId: 1, dueDate: 1, status: 1 });
   await migrateLegacyStore();
 
   const server = http.createServer((request, response) => {

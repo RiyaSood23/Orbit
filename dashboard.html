@@ -29,6 +29,9 @@
         <a href="team.html">Teams</a>
         <a href="create-task.html">Create Task</a>
         <a href="approvals.html">Approvals</a>
+        <a href="dashboard.html#events-title">Events</a>
+        <a href="announcements.html">Announcements</a>
+        <a href="workspace.html">Workspace</a>
       </nav>
 
       <div class="sidebar-footer">
@@ -48,7 +51,7 @@
           <p class="greeting-sub">Welcome back! Here's your organisation overview for today.</p>
           <div class="productivity-pill">
             <span class="pill-icon">⚡</span>
-            <span><strong id="productivity-score">87%</strong> team productivity this week — up 12% from last week</span>
+            <span><strong id="productivity-score">Loading…</strong> tasks completed across this organisation</span>
           </div>
         </div>
 
@@ -78,141 +81,8 @@
             <span class="live-badge"><span class="pulse-dot"></span> Live</span>
           </div>
 
-          <div class="teams-grid">
-            <!-- Team cards container -->
-            <div class="teams-card-wrapper">
-              <div class="team-cards-inner">
-
-                <!-- Content - placeholder -->
-                <article class="team-card" data-team="content">
-                  <div class="team-card-visual content-visual">
-                    <span class="team-emoji">📝</span>
-                  </div>
-                  <div class="team-card-body">
-                    <h3>Management</h3>
-                    <p class="team-lead">Lead: <strong>Aarav Sharma</strong></p>
-                    <div class="team-stats-row">
-                      <span>👥 <strong>0</strong> members</span>
-                      <span>⏳ <strong>0</strong> in progress</span>
-                    </div>
-                    <div class="progress-wrap">
-                      <div class="progress-label">
-                        <span>Completion</span>
-                        <span class="progress-value">0%</span>
-                      </div>
-                      <div class="progress-bar">
-                        <div class="progress-fill" data-progress="0"></div>
-                      </div>
-                    </div>
-                    <p class="overdue-tag">🔴 0 overdue</p>
-                  </div>
-                </article>
-
-                <!-- Technical - populated & clickable -->
-                <a class="team-card team-card-active" data-team="technical" href="team.html" aria-label="Open Technical team details">
-                  <div class="team-card-visual tech-visual">
-                    <img src="assets/images/team-tech.svg" alt="" class="team-illustration">
-                    <span class="active-badge">Active</span>
-                  </div>
-                  <div class="team-card-body">
-                    <h3>Technical</h3>
-                    <p class="team-lead">Lead: <strong>Rohan Kapoor</strong></p>
-                    <div class="team-stats-row">
-                      <span>👥 <strong>2</strong> members</span>
-                      <span>⏳ <strong>3</strong> in progress</span>
-                    </div>
-                    <div class="progress-wrap">
-                      <div class="progress-label">
-                        <span>Completion</span>
-                        <span class="progress-value">72%</span>
-                      </div>
-                      <div class="progress-bar">
-                        <div class="progress-fill" data-progress="72"></div>
-                      </div>
-                    </div>
-                    <p class="overdue-tag overdue-warning">🔴 2 overdue</p>
-                  </div>
-                  <span class="card-arrow">→</span>
-                </a>
-
-                <!-- Organising - placeholder -->
-                <article class="team-card" data-team="operations">
-                  <div class="team-card-visual ops-visual">
-                    <span class="team-emoji">🏗️</span>
-                  </div>
-                  <div class="team-card-body">
-                    <h3>Organising</h3>
-                    <p class="team-lead">Lead: <strong>Aarav Sharma</strong></p>
-                    <div class="team-stats-row">
-                      <span>👥 <strong>0</strong> members</span>
-                      <span>⏳ <strong>0</strong> in progress</span>
-                    </div>
-                    <div class="progress-wrap">
-                      <div class="progress-label">
-                        <span>Completion</span>
-                        <span class="progress-value">0%</span>
-                      </div>
-                      <div class="progress-bar">
-                        <div class="progress-fill" data-progress="0"></div>
-                      </div>
-                    </div>
-                    <p class="overdue-tag">🔴 0 overdue</p>
-                  </div>
-                </article>
-
-                <!-- Design - placeholder -->
-                <article class="team-card" data-team="design">
-                  <div class="team-card-visual design-visual">
-                    <span class="team-emoji">🎨</span>
-                  </div>
-                  <div class="team-card-body">
-                    <h3>Design</h3>
-                    <p class="team-lead">Lead: <strong>Ishita Verma</strong></p>
-                    <div class="team-stats-row">
-                      <span>👥 <strong>0</strong> members</span>
-                      <span>⏳ <strong>0</strong> in progress</span>
-                    </div>
-                    <div class="progress-wrap">
-                      <div class="progress-label">
-                        <span>Completion</span>
-                        <span class="progress-value">0%</span>
-                      </div>
-                      <div class="progress-bar">
-                        <div class="progress-fill" data-progress="0"></div>
-                      </div>
-                    </div>
-                    <p class="overdue-tag">🔴 0 overdue</p>
-                  </div>
-                </article>
-
-                <!-- Marketing - placeholder -->
-                <article class="team-card" data-team="marketing">
-                  <div class="team-card-visual marketing-visual">
-                    <span class="team-emoji">📣</span>
-                  </div>
-                  <div class="team-card-body">
-                    <h3>Marketing</h3>
-                    <p class="team-lead">Lead: <strong>Ananya Singh</strong></p>
-                    <div class="team-stats-row">
-                      <span>👥 <strong>0</strong> members</span>
-                      <span>⏳ <strong>0</strong> in progress</span>
-                    </div>
-                    <div class="progress-wrap">
-                      <div class="progress-label">
-                        <span>Completion</span>
-                        <span class="progress-value">0%</span>
-                      </div>
-                      <div class="progress-bar">
-                        <div class="progress-fill" data-progress="0"></div>
-                      </div>
-                    </div>
-                    <p class="overdue-tag">🔴 0 overdue</p>
-                  </div>
-                </article>
-
-              </div>
-            </div>
-
+          <div class="teams-grid" id="teams-grid" aria-live="polite">
+            <p class="dashboard-state">Loading teams…</p>
           </div>
         </section>
 
@@ -223,15 +93,9 @@
             <div class="panel-header">
               <div>
                 <h2 id="org-title">Organisation Overview </h2>
-                <p class="section-sub" id="org-insight">Click a metric or chart slice to explore the pipeline.</p>
+                <p class="section-sub" id="org-insight">Organisation-wide task totals.</p>
               </div>
-              <div class="org-controls">
-                <div class="range-toggle" role="tablist" aria-label="Time range">
-                  <button type="button" class="range-btn" data-range="week" role="tab" aria-selected="false">Week</button>
-                  <button type="button" class="range-btn is-active" data-range="month" role="tab" aria-selected="true">Month</button>
-                </div>
-                <span class="panel-tag">All teams</span>
-              </div>
+              <span class="panel-tag">All teams</span>
             </div>
 
             <div class="org-body">
@@ -248,26 +112,12 @@
               <div class="org-visuals">
                 <div class="org-highlight">
                   <p class="org-kicker" id="org-kicker">Overall health</p>
-                  <p class="org-spotlight" id="org-spotlight">57% of tasks are complete this month.</p>
-                </div>
-
-                <div class="week-chart" id="week-chart" aria-label="Daily activity">
-                  <div class="week-bar-track">
-                    <button type="button" class="week-bar" data-day="Mon" data-value="18" style="--h: 0%"><span>Mon</span></button>
-                    <button type="button" class="week-bar" data-day="Tue" data-value="22" style="--h: 0%"><span>Tue</span></button>
-                    <button type="button" class="week-bar" data-day="Wed" data-value="16" style="--h: 0%"><span>Wed</span></button>
-                    <button type="button" class="week-bar" data-day="Thu" data-value="24" style="--h: 0%"><span>Thu</span></button>
-                    <button type="button" class="week-bar" data-day="Fri" data-value="20" style="--h: 0%"><span>Fri</span></button>
-                    <button type="button" class="week-bar" data-day="Sat" data-value="9" style="--h: 0%"><span>Sat</span></button>
-                    <button type="button" class="week-bar" data-day="Sun" data-value="6" style="--h: 0%"><span>Sun</span></button>
-                  </div>
-                  <p class="week-caption" id="week-caption">Daily completions · hover a bar</p>
+                  <p class="org-spotlight" id="org-spotlight">Loading organisation statistics…</p>
                 </div>
 
                 <div class="pipeline" id="task-pipeline" role="img" aria-label="Task status pipeline">
                   <span class="pipe pipe-done" data-key="completed"></span>
-                  <span class="pipe pipe-progress" data-key="inProgress"></span>
-                  <span class="pipe pipe-review" data-key="review"></span>
+                  <span class="pipe pipe-progress" data-key="pending"></span>
                   <span class="pipe pipe-overdue" data-key="overdue"></span>
                 </div>
               </div>
@@ -277,39 +127,36 @@
               <button type="button" class="metric-chip is-active" data-key="total">
                 <span class="metric-dot metric-dot-total"></span>
                 <span class="metric-copy">
-                  <strong class="stat-number" data-target="156">0</strong>
+                  <strong class="stat-number" data-key="totalTasks">0</strong>
                   <span>Total</span>
                 </span>
               </button>
               <button type="button" class="metric-chip" data-key="completed">
                 <span class="metric-dot metric-dot-done"></span>
                 <span class="metric-copy">
-                  <strong class="stat-number" data-target="89">0</strong>
+                  <strong class="stat-number" data-key="completedTasks">0</strong>
                   <span>Completed</span>
                 </span>
               </button>
-              <button type="button" class="metric-chip" data-key="inProgress">
+              <button type="button" class="metric-chip" data-key="pendingTasks">
                 <span class="metric-dot metric-dot-progress"></span>
                 <span class="metric-copy">
-                  <strong class="stat-number" data-target="42">0</strong>
-                  <span>In progress</span>
+                  <strong class="stat-number" data-key="pendingTasks">0</strong>
+                  <span>Pending / incomplete</span>
                 </span>
               </button>
-              <button type="button" class="metric-chip" data-key="review">
-                <span class="metric-dot metric-dot-review"></span>
-                <span class="metric-copy">
-                  <strong class="stat-number" data-target="18">0</strong>
-                  <span>Pending review</span>
-                </span>
-              </button>
-              <button type="button" class="metric-chip" data-key="overdue">
+              <button type="button" class="metric-chip" data-key="overdueTasks">
                 <span class="metric-dot metric-dot-overdue"></span>
                 <span class="metric-copy">
-                  <strong class="stat-number" data-target="7">0</strong>
+                  <strong class="stat-number" data-key="overdueTasks">0</strong>
                   <span>Overdue</span>
                 </span>
               </button>
             </div>
+            <p class="section-sub org-count-summary">
+              <strong id="dashboard-total-teams">—</strong> teams ·
+              <strong id="dashboard-total-members">—</strong> organisation members
+            </p>
           </section>
 
           <!-- Deadlines -->
@@ -318,39 +165,36 @@
               <h2 id="deadlines-title">Upcoming Deadlines </h2>
               <button type="button" class="filter-chip">Filter</button>
             </div>
-            <ul class="deadline-list">
-              <li class="deadline-item priority-high">
-                <div class="deadline-info">
-                  <span class="priority-badge high">High</span>
-                  <strong>API Integration Sprint</strong>
-                  <span class="deadline-meta">Technical · Due 28 Oct</span>
-                </div>
-                <span class="deadline-time">🕐 6:00 PM</span>
-              </li>
-              <li class="deadline-item priority-medium">
-                <div class="deadline-info">
-                  <span class="priority-badge medium">Medium</span>
-                  <strong>Brand Guidelines Review</strong>
-                  <span class="deadline-meta">Design · Due 30 Oct</span>
-                </div>
-                <span class="deadline-time">🕐 2:00 PM</span>
-              </li>
-              <li class="deadline-item priority-low">
-                <div class="deadline-info">
-                  <span class="priority-badge low">Low</span>
-                  <strong>Q4 Campaign Brief</strong>
-                  <span class="deadline-meta">Marketing · Due 2 Nov</span>
-                </div>
-                <span class="deadline-time">🕐 11:00 AM</span>
-              </li>
-              <li class="deadline-item priority-high">
-                <div class="deadline-info">
-                  <span class="priority-badge high">High</span>
-                  <strong>Security Audit Report</strong>
-                  <span class="deadline-meta">Organising · Due 29 Oct</span>
-                </div>
-                <span class="deadline-time">🕐 5:00 PM</span>
-              </li>
+            <ul class="deadline-list" id="deadlines-list" aria-live="polite">
+              <li class="dashboard-state">Loading upcoming deadlines…</li>
+            </ul>
+          </section>
+
+          <section class="panel deadlines-panel animate-in" style="--delay: 0.46s" aria-labelledby="recent-tasks-title">
+            <div class="panel-header">
+              <h2 id="recent-tasks-title">Recent Tasks</h2>
+              <span class="panel-tag">Organisation-wide</span>
+            </div>
+            <ul class="deadline-list" id="recent-tasks-list" aria-live="polite">
+              <li class="dashboard-state">Loading recent tasks…</li>
+            </ul>
+          </section>
+
+          <section class="panel deadlines-panel animate-in" style="--delay: 0.47s" aria-labelledby="upcoming-events-title">
+            <div class="panel-header">
+              <h2 id="upcoming-events-title">Upcoming Events</h2>
+            </div>
+            <ul class="deadline-list" id="upcoming-events-list" aria-live="polite">
+              <li class="dashboard-state">Loading upcoming events…</li>
+            </ul>
+          </section>
+
+          <section class="panel deadlines-panel animate-in" style="--delay: 0.48s" aria-labelledby="recent-submissions-title">
+            <div class="panel-header">
+              <h2 id="recent-submissions-title">Recent Submissions</h2>
+            </div>
+            <ul class="deadline-list" id="recent-submissions-list" aria-live="polite">
+              <li class="dashboard-state">Loading submissions…</li>
             </ul>
           </section>
 
@@ -358,85 +202,88 @@
           <section class="panel performers-panel animate-in" style="--delay: 0.5s" aria-labelledby="performers-title">
             <div class="panel-header">
               <h2 id="performers-title">Top Performers </h2>
-              <span class="panel-tag">This month</span>
+              <span class="panel-tag">All time</span>
             </div>
-            <ol class="performer-list">
-              <li class="performer-item rank-1">
-                <span class="rank-medal">🥇</span>
-                <span class="performer-avatar avatar-gold">IV</span>
-                <div class="performer-info">
-                  <strong>Ishita Verma</strong>
-                  <span>Technical</span>
-                </div>
-                <span class="performer-points">1,240 pts</span>
-              </li>
-              <li class="performer-item rank-2">
-                <span class="rank-medal">🥈</span>
-                <span class="performer-avatar avatar-silver">RK</span>
-                <div class="performer-info">
-                  <strong>Rohan Kapoor</strong>
-                  <span>Marketing</span>
-                </div>
-                <span class="performer-points">980 pts</span>
-              </li>
-              <li class="performer-item rank-3">
-                <span class="rank-medal">🥉</span>
-                <span class="performer-avatar avatar-bronze">AS</span>
-                <div class="performer-info">
-                  <strong>Ananya Singh</strong>
-                  <span>Design</span>
-                </div>
-                <span class="performer-points">875 pts</span>
-              </li>
+            <ol class="performer-list" id="performers-list" aria-live="polite">
+              <li class="dashboard-state">Loading contributions…</li>
             </ol>
           </section>
 
-          <!-- Events & checklist -->
+          <section class="panel performers-panel members-panel animate-in" style="--delay: 0.52s" aria-labelledby="members-title">
+            <div class="panel-header">
+              <div>
+                <h2 id="members-title">Member Contributions</h2>
+                <p class="section-sub">Task completion and contribution points</p>
+              </div>
+            </div>
+            <ul class="member-contribution-list" id="members-list" aria-live="polite">
+              <li class="dashboard-state">Loading members…</li>
+            </ul>
+          </section>
+
+          <section class="panel deadlines-panel animate-in" style="--delay: 0.53s" aria-labelledby="announcements-title">
+            <div class="panel-header">
+              <div>
+                <h2 id="announcements-title">Announcements</h2>
+                <p class="section-sub">Updates for your organisation</p>
+              </div>
+              <button type="button" class="report-btn" id="create-announcement-btn">＋ Announcement</button>
+            </div>
+            <ul class="announcement-list" id="announcements-list" aria-live="polite">
+              <li class="dashboard-state">Loading announcements…</li>
+            </ul>
+          </section>
+
           <section class="panel events-panel animate-in" style="--delay: 0.55s" aria-labelledby="events-title">
             <div class="panel-header">
-              <h2 id="events-title">Upcoming Event </h2>
-            </div>
-
-            <div class="event-card">
-              <div class="event-date-block">
-                <span class="event-month">NOV</span>
-                <strong class="event-day">05</strong>
+              <div>
+                <h2 id="events-title">Organisation Events</h2>
+                <p class="section-sub">Events and their checklists</p>
               </div>
-              <div class="event-details">
-                <strong>TeamFlow Sprint Review</strong>
-                <p>All-hands demo & retrospective · Conference Room B</p>
-                <span class="event-time">🕐 10:00 AM – 12:00 PM</span>
-              </div>
+              <button type="button" class="report-btn" id="create-event-btn">＋ Event</button>
             </div>
-
-            <h3 class="checklist-title">Event Checklist ✔️</h3>
-            <ul class="checklist" id="event-checklist">
-              <li class="checklist-item done">
-                <button type="button" class="check-btn checked" aria-pressed="true" aria-label="Mark incomplete">✓</button>
-                <span>Prepare sprint demo slides</span>
-              </li>
-              <li class="checklist-item done">
-                <button type="button" class="check-btn checked" aria-pressed="true" aria-label="Mark incomplete">✓</button>
-                <span>Send calendar invites to all teams</span>
-              </li>
-              <li class="checklist-item">
-                <button type="button" class="check-btn" aria-pressed="false" aria-label="Mark complete">○</button>
-                <span>Book conference room & AV setup</span>
-              </li>
-              <li class="checklist-item">
-                <button type="button" class="check-btn" aria-pressed="false" aria-label="Mark complete">○</button>
-                <span>Collect team feedback forms</span>
-              </li>
-              <li class="checklist-item">
-                <button type="button" class="check-btn" aria-pressed="false" aria-label="Mark complete">○</button>
-                <span>Order refreshments 🍕</span>
-              </li>
-            </ul>
+            <div class="events-list" id="events-list" aria-live="polite">
+              <p class="dashboard-state">Loading events…</p>
+            </div>
           </section>
         </div>
       </main>
     </div>
   </div>
+
+  <dialog class="dashboard-dialog" id="event-dialog">
+    <form id="event-form">
+      <div class="dialog-heading">
+        <h2 id="event-dialog-title">Create event</h2>
+        <button type="button" class="dialog-close" data-close-dialog aria-label="Close">×</button>
+      </div>
+      <label>Title<input name="title" required minlength="2" maxlength="120"></label>
+      <label>Date and time<input name="date" type="datetime-local" required></label>
+      <label>Location<input name="location" maxlength="200"></label>
+      <label>Description<textarea name="description" rows="3" maxlength="2000"></textarea></label>
+      <p class="form-error" data-form-error role="alert"></p>
+      <div class="dialog-actions">
+        <button type="button" class="secondary-btn" data-close-dialog>Cancel</button>
+        <button type="submit" class="report-btn">Save event</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="dashboard-dialog" id="announcement-dialog">
+    <form id="announcement-form">
+      <div class="dialog-heading">
+        <h2 id="announcement-dialog-title">Create announcement</h2>
+        <button type="button" class="dialog-close" data-close-dialog aria-label="Close">×</button>
+      </div>
+      <label>Title<input name="title" required minlength="2" maxlength="120"></label>
+      <label>Announcement<textarea name="content" rows="5" required maxlength="5000"></textarea></label>
+      <p class="form-error" data-form-error role="alert"></p>
+      <div class="dialog-actions">
+        <button type="button" class="secondary-btn" data-close-dialog>Cancel</button>
+        <button type="submit" class="report-btn">Save announcement</button>
+      </div>
+    </form>
+  </dialog>
 
   <!-- Toast for interactions -->
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
