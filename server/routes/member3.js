@@ -421,7 +421,9 @@ async function getTeamDashboard(response, teamId, db, user) {
     profile: profilesById.get(member.userId) || null,
     ...(progressById.get(member.userId) || { assignedTasks: 0, completedTasks: 0, progress: 0 }),
   }));
-  const checkpoints = team.checkpoints?.length ? team.checkpoints : team.checklist || [];
+  const checkpoints = tasks
+    .filter((task) => task.checklistTask === true)
+    .map((task) => ({ id: task.id, text: task.title, done: task.status === "Completed" }));
 
   sendJson(response, 200, {
     team: { ...team, leader, members, checkpoints },
@@ -434,21 +436,29 @@ async function getTeamDashboard(response, teamId, db, user) {
   });
 }
 
-async function addCheckpoint(request, response, teamId, user) {
+async function addCheckpoint(request, response, teamId, db, user) {
   const body = await readJson(request);
   requireFields(body, ["text"]);
+  const title = typeof body.text === "string" ? body.text.trim() : "";
+  if (!title || title.length > 120) throw new RouteError(400, "Checklist task must be between 1 and 120 characters.");
   const team = await Team.findOne({
     id: teamId,
     organizationId: user.organizationId || DEFAULT_ORGANIZATION_ID,
   });
   if (!team) throw new RouteError(404, "Team not found.");
   if (!canManageTeam(user, team)) throw new RouteError(403, "You cannot manage this team.");
-  team.checkpoints.push({ id: crypto.randomUUID(), text: body.text, done: body.done === true });
-  await team.save();
-  sendJson(response, 201, { checkpoint: team.checkpoints[team.checkpoints.length - 1] });
+  const task = {
+    id: crypto.randomUUID(), organizationId: team.organizationId, teamId, team: team.name,
+    title, description: "", assignee: team.leaderId,
+    contributionPoints: 1, project: "", priority: "Medium",
+    dueDate: new Date().toISOString().slice(0, 10), progress: 0, status: "To do",
+    checklistTask: true, createdBy: user.id, createdAt: new Date().toISOString(),
+  };
+  await db.collection("tasks").insertOne(task);
+  sendJson(response, 201, { checkpoint: { id: task.id, text: task.title, done: false }, task });
 }
 
-async function updateCheckpoint(request, response, teamId, checkpointId, user) {
+async function updateCheckpoint(request, response, teamId, checkpointId, db, user) {
   const body = await readJson(request);
   const team = await Team.findOne({
     id: teamId,
@@ -456,25 +466,37 @@ async function updateCheckpoint(request, response, teamId, checkpointId, user) {
   });
   if (!team) throw new RouteError(404, "Team not found.");
   if (!canManageTeam(user, team)) throw new RouteError(403, "You cannot manage this team.");
-  const checkpoint = team.checkpoints.find((item) => item.id === checkpointId);
-  if (!checkpoint) throw new RouteError(404, "Checkpoint not found.");
-  if (body.text !== undefined) checkpoint.text = body.text;
-  if (body.done !== undefined) checkpoint.done = body.done === true;
-  await team.save();
-  sendJson(response, 200, { checkpoint });
+  const task = await db.collection("tasks").findOne({ id: checkpointId, teamId, organizationId: team.organizationId, checklistTask: true });
+  if (!task) throw new RouteError(404, "Checklist task not found.");
+  const updates = { updatedAt: new Date().toISOString() };
+  if (body.text !== undefined) {
+    const title = typeof body.text === "string" ? body.text.trim() : "";
+    if (!title || title.length > 120) throw new RouteError(400, "Checklist task must be between 1 and 120 characters.");
+    updates.title = title;
+  }
+  if (body.done !== undefined) {
+    if (typeof body.done !== "boolean") throw new RouteError(400, "Completion status must be true or false.");
+    updates.status = body.done ? "Completed" : "To do";
+    updates.progress = body.done ? 100 : 0;
+    updates.completedAt = body.done ? new Date().toISOString() : null;
+  }
+  const updated = await db.collection("tasks").findOneAndUpdate(
+    { id: checkpointId, teamId, organizationId: team.organizationId, checklistTask: true },
+    { $set: updates }, { returnDocument: "after" }
+  );
+  const saved = updated?.value || updated;
+  sendJson(response, 200, { checkpoint: { id: saved.id, text: saved.title, done: saved.status === "Completed" }, task: saved });
 }
 
-async function deleteCheckpoint(response, teamId, checkpointId, user) {
+async function deleteCheckpoint(response, teamId, checkpointId, db, user) {
   const team = await Team.findOne({
     id: teamId,
     organizationId: user.organizationId || DEFAULT_ORGANIZATION_ID,
   });
   if (!team) throw new RouteError(404, "Team not found.");
   if (!canManageTeam(user, team)) throw new RouteError(403, "You cannot manage this team.");
-  const before = team.checkpoints.length;
-  team.checkpoints = team.checkpoints.filter((item) => item.id !== checkpointId);
-  if (team.checkpoints.length === before) throw new RouteError(404, "Checkpoint not found.");
-  await team.save();
+  const result = await db.collection("tasks").deleteOne({ id: checkpointId, teamId, organizationId: team.organizationId, checklistTask: true });
+  if (!result.deletedCount) throw new RouteError(404, "Checklist task not found.");
   sendJson(response, 200, { success: true });
 }
 
@@ -583,9 +605,9 @@ async function handleMember3(request, response, pathname, db, authContext) {
   if (checkpointMatch) {
     const teamId = decodeURIComponent(checkpointMatch[1]);
     const checkpointId = checkpointMatch[2] ? decodeURIComponent(checkpointMatch[2]) : null;
-    if (method === "POST" && !checkpointId) return addCheckpoint(request, response, teamId, user);
-    if (method === "PATCH" && checkpointId) return updateCheckpoint(request, response, teamId, checkpointId, user);
-    if (method === "DELETE" && checkpointId) return deleteCheckpoint(response, teamId, checkpointId, user);
+    if (method === "POST" && !checkpointId) return addCheckpoint(request, response, teamId, db, user);
+    if (method === "PATCH" && checkpointId) return updateCheckpoint(request, response, teamId, checkpointId, db, user);
+    if (method === "DELETE" && checkpointId) return deleteCheckpoint(response, teamId, checkpointId, db, user);
   }
 
   const reminderMatch = pathname.match(/^\/api\/teams\/([^/]+)\/reminders(?:\/([^/]+))?$/);
