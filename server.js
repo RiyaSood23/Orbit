@@ -40,6 +40,18 @@ const { DEFAULT_ORGANIZATION_ID } = require("./server/organization");
 
 const port = Number(process.env.PORT) || 3000;
 const rootDirectory = __dirname;
+const reactBuildDirectory = path.join(rootDirectory, "client", "dist");
+const reactIndexPath = path.join(reactBuildDirectory, "index.html");
+const legacyReactRoutes = new Map([
+  ["/index.html", "/"],
+  ["/landing.html", "/"],
+  ["/dashboard.html", "/dashboard"],
+  ["/team.html", "/team"],
+  ["/create-task.html", "/create-task"],
+  ["/approvals.html", "/approvals"],
+  ["/announcements.html", "/announcements"],
+  ["/workspace.html", "/workspace"],
+]);
 const mongoDbName = process.env.MONGODB_DB || "Orbit";
 function getMongoUri() {
   if (process.env.MONGODB_URI) return process.env.MONGODB_URI;
@@ -119,6 +131,22 @@ function getFilePath(requestUrl) {
     rootRelativePath.startsWith(`..${path.sep}`) ||
     path.isAbsolute(rootRelativePath);
   return outsideRoot ? null : filePath;
+}
+
+function getReactBuildFile(pathname) {
+  if (!fs.existsSync(reactIndexPath)) return null;
+
+  const decodedPath = decodeURIComponent(pathname);
+  if (decodedPath === "/" || !path.extname(decodedPath)) return reactIndexPath;
+  if (!decodedPath.startsWith("/assets/")) return null;
+
+  const filePath = path.resolve(reactBuildDirectory, `.${decodedPath}`);
+  const relativePath = path.relative(reactBuildDirectory, filePath);
+  const outsideBuild =
+    relativePath === ".." ||
+    relativePath.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativePath);
+  return outsideBuild ? null : filePath;
 }
 
 function readJsonBody(request) {
@@ -845,9 +873,18 @@ async function serveStatic(request, response, pathname) {
     return;
   }
 
+  if (fs.existsSync(reactIndexPath) && legacyReactRoutes.has(pathname)) {
+    response.writeHead(302, {
+      Location: legacyReactRoutes.get(pathname),
+      "Cache-Control": "no-store",
+    });
+    response.end();
+    return;
+  }
+
   let filePath;
   try {
-    filePath = getFilePath(request.url);
+    filePath = getReactBuildFile(pathname) || getFilePath(request.url);
   } catch {
     sendError(response, 400, "Bad Request");
     return;

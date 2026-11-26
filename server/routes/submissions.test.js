@@ -18,10 +18,15 @@ function matches(record, filter) {
   return Object.entries(filter).every(([key, expected]) => {
     if (key === "$or") return true;
     if (key === "$expr") return true;
+    const actual = key.includes(".")
+      ? key.split(".").reduce((value, part) => (
+        Array.isArray(value) ? value.map((entry) => entry[part]) : value?.[part]
+      ), record)
+      : record[key];
     if (expected && typeof expected === "object" && "$in" in expected) {
-      return expected.$in.includes(record[key]);
+      return expected.$in.includes(actual);
     }
-    return record[key] === expected;
+    return Array.isArray(actual) ? actual.includes(expected) : actual === expected;
   });
 }
 
@@ -85,6 +90,11 @@ function createStore() {
         record[field].push(...(value.$each || [value]));
       }
     }
+    if (update.$pull) {
+      for (const [field, value] of Object.entries(update.$pull)) {
+        record[field] = record[field].filter((entry) => !matches(entry, value));
+      }
+    }
     return record;
   };
   Team.find = (filter) => query(teams.filter((team) => matches(team, filter)));
@@ -99,6 +109,11 @@ function createStore() {
         },
         find(filter) {
           return {
+            sort(sortOrder) {
+              const [field, direction] = Object.entries(sortOrder)[0];
+              tasks.sort((left, right) => direction * (new Date(left[field]) - new Date(right[field])));
+              return this;
+            },
             async toArray() {
               return tasks.filter((task) => matches(task, filter));
             },
@@ -187,7 +202,7 @@ async function call(store, method, pathname, user, body, url = pathname) {
   return result;
 }
 
-test("submissions are limited to completed tasks and scoped to their submitter and team lead", async (t) => {
+test("team members can submit completed task work while incomplete and duplicate submissions are rejected", async (t) => {
   const store = createStore();
   t.after(() => store.restore());
 
@@ -200,7 +215,12 @@ test("submissions are limited to completed tasks and scoped to their submitter a
     { id: "task-b", organizationId, assignee: memberB.id, teamId: "team-b", status: "Completed" },
     { id: "task-incomplete", organizationId, assignee: memberA.id, teamId: "team-a", status: "In progress" }
   );
-  store.teams.push({ id: "team-a", organizationId, leaderId: leadA.id });
+  store.teams.push({
+    id: "team-a",
+    organizationId,
+    leaderId: leadA.id,
+    members: [{ userId: memberA.id }, { userId: leadA.id }],
+  });
 
   const createdA = await call(
     store,
@@ -244,10 +264,28 @@ test("submissions are limited to completed tasks and scoped to their submitter a
     { description: "Duplicate active submission." }
   )).status, 409);
 
+  const teamMember = { id: "teammate-a", organizationId, role: "member" };
+  store.teams[0].members.push({ userId: teamMember.id });
+  store.tasks.push({ id: "task-team-member", organizationId, assignee: memberA.id, teamId: "team-a", status: "Completed" });
+  const teammateSubmission = await call(
+    store,
+    "POST",
+    "/api/tasks/task-team-member/submissions",
+    teamMember,
+    { description: "Submitted by a teammate." }
+  );
+  assert.equal(teammateSubmission.status, 201);
+
   const memberList = await call(store, "GET", "/api/submissions", memberA);
-  assert.deepEqual(memberList.body.submissions.map((entry) => entry.taskId), ["task-a"]);
+  assert.deepEqual(
+    memberList.body.submissions.map((entry) => entry.taskId).sort(),
+    ["task-a", "task-b", "task-team-member"].sort()
+  );
   const leadList = await call(store, "GET", "/api/submissions", leadA);
-  assert.deepEqual(leadList.body.submissions.map((entry) => entry.taskId), ["task-a"]);
+  assert.deepEqual(
+    leadList.body.submissions.map((entry) => entry.taskId).sort(),
+    ["task-a", "task-b", "task-team-member"].sort()
+  );
 });
 
 test("review requires authorization and feedback for revision requests, and locks final decisions", async (t) => {
@@ -258,6 +296,7 @@ test("review requires authorization and feedback for revision requests, and lock
   const member = { id: "member-a", organizationId, role: "member" };
   const lead = { id: "lead-a", organizationId, role: "member" };
   const manager = { id: "manager-a", organizationId, role: "manager" };
+  const admin = { id: "admin-a", name: "Workspace Admin", organizationId, role: "admin" };
   store.tasks.push({
     id: "task-a",
     organizationId,
@@ -281,14 +320,14 @@ test("review requires authorization and feedback for revision requests, and lock
     "PATCH",
     `/api/submissions/${submissionId}/review`,
     lead,
-    { status: "Revision requested" }
-  )).status, 400);
+    { status: "Revision requested", feedback: "Lead cannot make the final decision." }
+  )).status, 403);
 
   const revision = await call(
     store,
     "PATCH",
     `/api/submissions/${submissionId}/review`,
-    lead,
+    admin,
     { status: "Revision requested", feedback: "Please add the test results." }
   );
   assert.equal(revision.status, 200);
@@ -312,25 +351,32 @@ test("review requires authorization and feedback for revision requests, and lock
     { status: "Approved" }
   )).status, 403);
 
-  const approved = await call(
-    store,
-    "PATCH",
-    `/api/submissions/${resubmittedId}/review`,
-    manager,
-    { status: "Approved" }
-  );
-  assert.equal(approved.status, 200);
-  assert.equal(approved.body.submission.reviewedBy, manager.id);
   assert.equal((await call(
     store,
     "PATCH",
     `/api/submissions/${resubmittedId}/review`,
-    lead,
+    manager,
+    { status: "Rejected", feedback: "Late decision." }
+  )).status, 403);
+  const approved = await call(
+    store,
+    "PATCH",
+    `/api/submissions/${resubmittedId}/review`,
+    admin,
+    { status: "Approved" }
+  );
+  assert.equal(approved.status, 200);
+  assert.equal(approved.body.submission.reviewedBy, admin.id);
+  assert.equal((await call(
+    store,
+    "PATCH",
+    `/api/submissions/${resubmittedId}/review`,
+    admin,
     { status: "Rejected", feedback: "Late decision." }
   )).status, 409);
 });
 
-test("submitters and reviewers can exchange comments, while only reviewers can set formal feedback", async (t) => {
+test("organization members can read and comment on submissions, while only admins can set formal feedback or delete comments", async (t) => {
   const store = createStore();
   t.after(() => store.restore());
 
@@ -338,6 +384,7 @@ test("submitters and reviewers can exchange comments, while only reviewers can s
   const member = { id: "member-a", organizationId, role: "member" };
   const lead = { id: "lead-a", organizationId, role: "member" };
   const outsider = { id: "outsider", organizationId, role: "member" };
+  const admin = { id: "admin-a", name: "Workspace Admin", organizationId, role: "admin" };
   store.tasks.push({
     id: "task-a",
     organizationId,
@@ -366,19 +413,39 @@ test("submitters and reviewers can exchange comments, while only reviewers can s
   assert.equal(comment.status, 201);
   assert.equal(comment.body.comment.authorId, lead.id);
   assert.equal(comment.body.submission.comments.length, 1);
-  assert.equal((await call(
+  const outsiderRead = await call(store, "GET", `/api/submissions/${submissionId}`, outsider);
+  assert.equal(outsiderRead.status, 200);
+  const outsiderComment = await call(
     store,
     "POST",
     `/api/submissions/${submissionId}/comments`,
     outsider,
     { text: "Not part of this review." }
-  )).status, 403);
+  );
+  assert.equal(outsiderComment.status, 201);
+  assert.equal(outsiderComment.body.submission.comments.length, 2);
+
+  const deniedDelete = await call(
+    store,
+    "DELETE",
+    `/api/submissions/${submissionId}/comments/${comment.body.comment.id}`,
+    outsider
+  );
+  assert.equal(deniedDelete.status, 403);
+  const deletedComment = await call(
+    store,
+    "DELETE",
+    `/api/submissions/${submissionId}/comments/${comment.body.comment.id}`,
+    admin
+  );
+  assert.equal(deletedComment.status, 200);
+  assert.equal(deletedComment.body.submission.comments.length, 1);
 
   const feedback = await call(
     store,
     "PATCH",
     `/api/submissions/${submissionId}/feedback`,
-    lead,
+    admin,
     { feedback: "The implementation is clear so far." }
   );
   assert.equal(feedback.status, 200);
@@ -388,9 +455,50 @@ test("submitters and reviewers can exchange comments, while only reviewers can s
     store,
     "PATCH",
     `/api/submissions/${submissionId}/feedback`,
-    member,
+    lead,
     { feedback: "Self-authored feedback." }
   )).status, 403);
+});
+
+test("admins can list every task and rejections persist reviewer attribution and explanation as a comment", async (t) => {
+  const store = createStore();
+  t.after(() => store.restore());
+
+  const organizationId = "organization-a";
+  const member = { id: "member-a", organizationId, role: "member" };
+  const admin = { id: "admin-a", name: "Workspace Admin", organizationId, role: "admin" };
+  store.tasks.push(
+    { id: "task-completed", organizationId, assignee: member.id, status: "Completed", createdAt: new Date("2026-03-02") },
+    { id: "task-active", organizationId, assignee: member.id, status: "In progress", createdAt: new Date("2026-03-01") }
+  );
+
+  const forbiddenQueue = await call(store, "GET", "/api/submissions/queue", member);
+  assert.equal(forbiddenQueue.status, 403);
+
+  const queue = await call(store, "GET", "/api/submissions/queue", admin);
+  assert.equal(queue.status, 200);
+  assert.deepEqual(queue.body.tasks.map((task) => task.status), ["Completed", "In progress"]);
+
+  const created = await call(
+    store,
+    "POST",
+    "/api/tasks/task-completed/submissions",
+    member,
+    { description: "Finished work." }
+  );
+  const rejected = await call(
+    store,
+    "PATCH",
+    `/api/submissions/${created.body.submission.id}/review`,
+    admin,
+    { status: "Rejected", feedback: "Please add the missing accessibility notes." }
+  );
+  assert.equal(rejected.status, 200);
+  assert.equal(rejected.body.submission.status, "Rejected");
+  assert.equal(rejected.body.submission.reviewedBy, admin.id);
+  assert.equal(rejected.body.submission.feedback, "Please add the missing accessibility notes.");
+  assert.match(rejected.body.submission.comments[0].text, /rejected by Workspace Admin/);
+  assert.match(rejected.body.submission.comments[0].text, /missing accessibility notes/);
 });
 
 test("Multer uploads files to private storage and download access is scoped to participants", async (t) => {

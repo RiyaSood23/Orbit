@@ -130,19 +130,21 @@ async function findTask(db, taskId, organizationId) {
   return task;
 }
 
-async function canReviewTask(task, user, organizationId) {
-  if (["manager", "admin"].includes(user.role || "member")) return true;
+async function canSubmitTask(task, user, organizationId) {
+  if (task.assignee === user.id) return true;
   if (typeof task.teamId !== "string" || !task.teamId) return false;
   const team = await Team.findOne({ id: task.teamId, organizationId }).lean();
-  return Boolean(team && team.leaderId === user.id);
+  return Boolean(team && (
+    team.leaderId === user.id ||
+    (team.members || []).some((member) => member.userId === user.id)
+  ));
 }
 
-async function authorizeParticipant(submission, user, db, organizationId) {
+async function authorizeFileAccess(submission, user, db, organizationId) {
+  if (["manager", "admin"].includes(user.role || "member")) return;
   const task = await findTask(db, submission.taskId, organizationId);
-  if (submission.submittedBy === user.id || await canReviewTask(task, user, organizationId)) {
-    return task;
-  }
-  throw new SubmissionRouteError(403, "You do not have permission to access this submission.");
+  if (submission.submittedBy === user.id || await canSubmitTask(task, user, organizationId)) return;
+  throw new SubmissionRouteError(403, "You do not have permission to access this submission file.");
 }
 
 async function removeUploadedFiles(files) {
@@ -169,8 +171,8 @@ function mapUploadError(error) {
 
 async function createSubmission(request, response, user, db, readJsonBody, taskId, organizationId) {
   const task = await findTask(db, taskId, organizationId);
-  if (task.assignee !== user.id) {
-    throw new SubmissionRouteError(403, "Only the assigned member can submit this task.");
+  if (!await canSubmitTask(task, user, organizationId)) {
+    throw new SubmissionRouteError(403, "Only the assignee or a member of the task's team can submit this task.");
   }
   if (task.status !== "Completed") {
     throw new SubmissionRouteError(409, "Complete the task before submitting it for review.");
@@ -181,7 +183,6 @@ async function createSubmission(request, response, user, db, readJsonBody, taskI
   const latestSubmission = await Submission.findOne({
     organizationId,
     taskId,
-    submittedBy: user.id,
   }).sort({ createdAt: -1 }).lean();
   if (latestSubmission && latestSubmission.status !== "Revision requested") {
     throw new SubmissionRouteError(409, "This task already has a submission that cannot be resubmitted.");
@@ -205,12 +206,11 @@ async function createSubmission(request, response, user, db, readJsonBody, taskI
   sendJson(response, 201, { submission });
 }
 
-async function listSubmissions(response, request, user, db, organizationId) {
+async function listSubmissions(response, request, organizationId) {
   const url = new URL(request.url, "http://localhost");
   const filter = { organizationId };
   const taskId = url.searchParams.get("taskId");
   const status = url.searchParams.get("status");
-
   if (taskId !== null) filter.taskId = recordId(taskId, "Task ID");
   if (status !== null) {
     if (!["Submitted", ...reviewStatuses].includes(status)) {
@@ -218,30 +218,59 @@ async function listSubmissions(response, request, user, db, organizationId) {
     }
     filter.status = status;
   }
-
-  if (!["manager", "admin"].includes(user.role || "member")) {
-    const teams = await Team.find({ organizationId, leaderId: user.id }).select("id").lean();
-    const teamIds = teams.map((team) => team.id);
-    const teamTasks = teamIds.length
-      ? await db.collection("tasks").find(
-          { organizationId, teamId: { $in: teamIds } },
-          { projection: { _id: 0, id: 1 } }
-        ).toArray()
-      : [];
-    const visibleTaskIds = teamTasks.map((task) => task.id);
-    filter.$or = [{ submittedBy: user.id }];
-    if (visibleTaskIds.length) filter.$or.push({ taskId: { $in: visibleTaskIds } });
-  }
-
   const submissions = await Submission.find(filter).sort({ createdAt: -1 }).lean();
   sendJson(response, 200, { submissions });
 }
 
-async function getSubmission(response, submissionId, user, db, organizationId) {
+async function listAdminTaskQueue(response, user, db, organizationId) {
+  if (user.role !== "admin") {
+    throw new SubmissionRouteError(403, "Only workspace admins can view the organization task queue.");
+  }
+  const tasks = await db.collection("tasks").find(
+    { organizationId },
+    {
+      projection: {
+        _id: 0,
+        id: 1,
+        title: 1,
+        description: 1,
+        status: 1,
+        teamId: 1,
+        team: 1,
+        assignee: 1,
+        dueDate: 1,
+        priority: 1,
+        createdAt: 1,
+      },
+    }
+  ).sort({ createdAt: -1 }).toArray();
+  sendJson(response, 200, { tasks });
+}
+
+async function getSubmission(response, submissionId, organizationId) {
   const submission = await Submission.findOne({ id: submissionId, organizationId }).lean();
   if (!submission) throw new SubmissionRouteError(404, "Submission not found.");
-  await authorizeParticipant(submission, user, db, organizationId);
   sendJson(response, 200, { submission });
+}
+
+async function removeSubmissionComment(response, submissionId, commentId, user, organizationId) {
+  if (user.role !== "admin") {
+    throw new SubmissionRouteError(403, "Only workspace admins can delete submission comments.");
+  }
+  const updatedSubmission = await Submission.findOneAndUpdate(
+    { id: submissionId, organizationId, "comments.id": commentId },
+    {
+      $pull: { comments: { id: commentId } },
+      $set: { updatedAt: new Date() },
+    },
+    { returnDocument: "after", runValidators: true }
+  );
+  if (!updatedSubmission) {
+    const submission = await Submission.findOne({ id: submissionId, organizationId }).lean();
+    if (!submission) throw new SubmissionRouteError(404, "Submission not found.");
+    throw new SubmissionRouteError(404, "Submission comment not found.");
+  }
+  sendJson(response, 200, { submission: updatedSubmission });
 }
 
 async function addSubmissionFiles(request, response, submissionId, user, db, organizationId, receiveFiles, storageDirectory) {
@@ -314,7 +343,7 @@ async function addSubmissionFiles(request, response, submissionId, user, db, org
 async function downloadSubmissionFile(response, submissionId, fileId, user, db, organizationId, storageDirectory) {
   const submission = await Submission.findOne({ id: submissionId, organizationId }).lean();
   if (!submission) throw new SubmissionRouteError(404, "Submission not found.");
-  await authorizeParticipant(submission, user, db, organizationId);
+  await authorizeFileAccess(submission, user, db, organizationId);
 
   const file = (submission.files || []).find((item) => item.id === fileId);
   if (!file) throw new SubmissionRouteError(404, "Submission file not found.");
@@ -357,14 +386,13 @@ async function downloadSubmissionFile(response, submissionId, fileId, user, db, 
   stream.pipe(response);
 }
 
-async function updateSubmissionFeedback(request, response, submissionId, user, db, readJsonBody, organizationId) {
+async function updateSubmissionFeedback(request, response, submissionId, user, readJsonBody, organizationId) {
   const body = await readJsonBody(request);
   const feedback = requiredText(body.feedback, "Feedback", 5000);
   const submission = await Submission.findOne({ id: submissionId, organizationId }).lean();
   if (!submission) throw new SubmissionRouteError(404, "Submission not found.");
-  const task = await findTask(db, submission.taskId, organizationId);
-  if (submission.submittedBy === user.id || !(await canReviewTask(task, user, organizationId))) {
-    throw new SubmissionRouteError(403, "You do not have permission to provide reviewer feedback.");
+  if (user.role !== "admin" || submission.submittedBy === user.id) {
+    throw new SubmissionRouteError(403, "Only workspace admins can provide feedback on another user's submission.");
   }
   if (!["Submitted", "Under review"].includes(submission.status)) {
     throw new SubmissionRouteError(409, "Feedback cannot be changed after a final review.");
@@ -385,12 +413,11 @@ async function updateSubmissionFeedback(request, response, submissionId, user, d
   sendJson(response, 200, { submission: updatedSubmission });
 }
 
-async function addSubmissionComment(request, response, submissionId, user, db, readJsonBody, organizationId) {
+async function addSubmissionComment(request, response, submissionId, user, readJsonBody, organizationId) {
   const body = await readJsonBody(request);
   const text = requiredText(body.text, "Comment", 2000);
   const submission = await Submission.findOne({ id: submissionId, organizationId }).lean();
   if (!submission) throw new SubmissionRouteError(404, "Submission not found.");
-  await authorizeParticipant(submission, user, db, organizationId);
 
   const comment = {
     id: crypto.randomUUID(),
@@ -410,7 +437,7 @@ async function addSubmissionComment(request, response, submissionId, user, db, r
   sendJson(response, 201, { comment, submission: updatedSubmission });
 }
 
-async function reviewSubmission(request, response, submissionId, user, db, readJsonBody, organizationId) {
+async function reviewSubmission(request, response, submissionId, user, readJsonBody, organizationId) {
   const body = await readJsonBody(request);
   const status = requiredText(body.status, "Review status", 32);
   if (!reviewStatuses.includes(status)) {
@@ -430,28 +457,39 @@ async function reviewSubmission(request, response, submissionId, user, db, readJ
 
   const submission = await Submission.findOne({ id: submissionId, organizationId }).lean();
   if (!submission) throw new SubmissionRouteError(404, "Submission not found.");
-  const task = await findTask(db, submission.taskId, organizationId);
-  if (submission.submittedBy === user.id || !(await canReviewTask(task, user, organizationId))) {
-    throw new SubmissionRouteError(403, "You do not have permission to review this submission.");
+  if (user.role !== "admin" || submission.submittedBy === user.id) {
+    throw new SubmissionRouteError(403, "Only workspace admins can review another user's submission.");
   }
   if (!["Submitted", "Under review"].includes(submission.status)) {
     throw new SubmissionRouteError(409, "This submission has already received a final review.");
   }
 
+  const reviewedAt = new Date();
+  const update = {
+    $set: {
+      status,
+      feedback,
+      reviewedBy: user.id,
+      reviewedAt,
+    },
+  };
+  if (status === "Rejected") {
+    update.$push = {
+      comments: {
+        id: crypto.randomUUID(),
+        authorId: user.id,
+        text: `This submission was rejected by ${user.name || user.id}. Reason: ${feedback}`,
+        createdAt: reviewedAt,
+      },
+    };
+  }
   const updatedSubmission = await Submission.findOneAndUpdate(
     {
       id: submissionId,
       organizationId,
       status: { $in: ["Submitted", "Under review"] },
     },
-    {
-      $set: {
-        status,
-        feedback,
-        reviewedBy: user.id,
-        reviewedAt: new Date(),
-      },
-    },
+    update,
     { returnDocument: "after", runValidators: true }
   );
   if (!updatedSubmission) {
@@ -479,7 +517,12 @@ async function handleSubmissions(request, response, pathname, context) {
   }
 
   if (request.method === "GET" && pathname === "/api/submissions") {
-    await listSubmissions(response, request, user, db, organizationId);
+    await listSubmissions(response, request, organizationId);
+    return true;
+  }
+
+  if (request.method === "GET" && pathname === "/api/submissions/queue") {
+    await listAdminTaskQueue(response, user, db, organizationId);
     return true;
   }
 
@@ -515,31 +558,38 @@ async function handleSubmissions(request, response, pathname, context) {
     return true;
   }
 
-  const commentMatch = pathname.match(/^\/api\/submissions\/([^/]+)\/comments$/);
-  if (request.method === "POST" && commentMatch) {
+  const commentMatch = pathname.match(/^\/api\/submissions\/([^/]+)\/comments(?:\/([^/]+))?$/);
+  if (commentMatch) {
     const submissionId = decodedRecordId(commentMatch[1], "Submission ID");
-    await addSubmissionComment(request, response, submissionId, user, db, readJsonBody, organizationId);
-    return true;
+    if (request.method === "DELETE" && commentMatch[2]) {
+      const commentId = decodedRecordId(commentMatch[2], "Comment ID");
+      await removeSubmissionComment(response, submissionId, commentId, user, organizationId);
+      return true;
+    }
+    if (request.method === "POST" && !commentMatch[2]) {
+      await addSubmissionComment(request, response, submissionId, user, readJsonBody, organizationId);
+      return true;
+    }
   }
 
   const feedbackMatch = pathname.match(/^\/api\/submissions\/([^/]+)\/feedback$/);
   if (request.method === "PATCH" && feedbackMatch) {
     const submissionId = decodedRecordId(feedbackMatch[1], "Submission ID");
-    await updateSubmissionFeedback(request, response, submissionId, user, db, readJsonBody, organizationId);
+    await updateSubmissionFeedback(request, response, submissionId, user, readJsonBody, organizationId);
     return true;
   }
 
   const reviewMatch = pathname.match(/^\/api\/submissions\/([^/]+)\/review$/);
   if (request.method === "PATCH" && reviewMatch) {
     const submissionId = decodedRecordId(reviewMatch[1], "Submission ID");
-    await reviewSubmission(request, response, submissionId, user, db, readJsonBody, organizationId);
+    await reviewSubmission(request, response, submissionId, user, readJsonBody, organizationId);
     return true;
   }
 
   const submissionMatch = pathname.match(/^\/api\/submissions\/([^/]+)$/);
   if (request.method === "GET" && submissionMatch) {
     const submissionId = decodedRecordId(submissionMatch[1], "Submission ID");
-    await getSubmission(response, submissionId, user, db, organizationId);
+    await getSubmission(response, submissionId, organizationId);
     return true;
   }
 
