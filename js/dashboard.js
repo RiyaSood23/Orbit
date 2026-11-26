@@ -698,4 +698,17 @@
       if (error.message.includes("Authentication")) window.location.replace("index.html");
     }
   });
+
+  let refreshOnFocusPending = false;
+  async function refreshWhenVisible() {
+    if (document.visibilityState !== "visible" || refreshOnFocusPending) return;
+    refreshOnFocusPending = true;
+    try {
+      await refreshAll();
+    } finally {
+      refreshOnFocusPending = false;
+    }
+  }
+  window.addEventListener("focus", refreshWhenVisible);
+  document.addEventListener("visibilitychange", refreshWhenVisible);
 })();
