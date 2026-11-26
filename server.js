@@ -25,12 +25,17 @@ const Contribution = require("./server/models/Contribution");
 const Organization = require("./server/models/Organization");
 const Event = require("./server/models/Event");
 const Announcement = require("./server/models/Announcement");
+const Submission = require("./server/models/Submission");
 const Team = require("./server/models/Team");
 const User = require("./server/models/User");
 const {
   handleOrganisation,
   OrganisationRouteError,
 } = require("./server/routes/organisation");
+const {
+  handleSubmissions,
+  SubmissionRouteError,
+} = require("./server/routes/submissions");
 const { DEFAULT_ORGANIZATION_ID } = require("./server/organization");
 
 const port = Number(process.env.PORT) || 3000;
@@ -680,6 +685,10 @@ async function deleteTask(request, response, user, taskId) {
     throw new HttpError(403, "You cannot delete this task.");
   }
 
+  if (await Submission.exists({ organizationId: user.organizationId, taskId })) {
+    throw new HttpError(409, "Tasks with submissions cannot be deleted.");
+  }
+
   const result = await tasksCollection.deleteOne({ id: taskId, organizationId: user.organizationId });
   if (!result.deletedCount) throw new HttpError(404, "Task not found.");
   sendJson(response, 200, {
@@ -696,6 +705,27 @@ async function localDateString(date) {
 }
 
 async function handleApiRequest(request, response, pathname) {
+  const submissionApi =
+    pathname === "/api/submissions" ||
+    pathname.startsWith("/api/submissions/") ||
+    /^\/api\/tasks\/[^/]+\/submissions$/.test(pathname);
+  if (submissionApi) {
+    const user = await authenticate(request);
+    try {
+      const result = await handleSubmissions(request, response, pathname, {
+        user,
+        db,
+        readJsonBody,
+      });
+      if (result !== false) return true;
+    } catch (error) {
+      if (error instanceof SubmissionRouteError) {
+        throw new HttpError(error.status, error.message);
+      }
+      throw error;
+    }
+  }
+
   const organisationApi =
     pathname === "/api/organisation" ||
     pathname.startsWith("/api/organisation/") ||
@@ -922,7 +952,7 @@ async function startServer() {
   ]);
   await Contribution.migrateLegacyHistory();
   await Contribution.init();
-  await Promise.all([Event.init(), Announcement.init()]);
+  await Promise.all([Event.init(), Announcement.init(), Submission.init()]);
 
   await usersCollection.createIndex({ email: 1 }, { unique: true });
   await usersCollection.createIndex({ id: 1 }, { unique: true });
