@@ -30,6 +30,21 @@ const submissionCommentSchema = new mongoose.Schema(
   { timestamps: false }
 );
 
+const submissionActivitySchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true },
+    actorId: { type: String, ref: "User", required: true },
+    action: {
+      type: String,
+      enum: ["submitted", "under_review", "revision_requested", "approved", "rejected", "feedback_added", "commented"],
+      required: true,
+    },
+    note: { type: String, trim: true, maxlength: 5000, default: "" },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { _id: false, timestamps: false }
+);
+
 const submissionSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true },
@@ -55,6 +70,7 @@ const submissionSchema = new mongoose.Schema(
     reviewedBy: { type: String, ref: "User", default: null },
     reviewedAt: { type: Date, default: null },
     comments: { type: [submissionCommentSchema], default: [] },
+    activity: { type: [submissionActivitySchema], default: [] },
   },
   { timestamps: true, collection: "submissions" }
 );

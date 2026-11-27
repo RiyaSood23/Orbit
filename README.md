@@ -76,16 +76,16 @@ Except for file uploads, writes use JSON. Event create/update fields are `title`
 
 ### Submission and review APIs
 
-- `POST /api/tasks/:taskId/submissions` lets the assignee or a member of the task's team submit a completed task with a required `description` (up to 5,000 characters). A new submission is allowed after an admin requests revisions; duplicate active or final submissions are rejected.
-- `GET /api/submissions` lists submissions and their persistent comments for authenticated members of the same organisation; optional `taskId` and `status` filters are supported.
-- `GET /api/submissions/queue` returns every task and its current status for workspace admins only, including tasks without a submission.
-- `GET /api/submissions/:id` retrieves a submission and its comments for an authenticated member of the same organisation.
-- `PATCH /api/submissions/:id/review` accepts `status` (`Under review`, `Revision requested`, `Approved`, or `Rejected`) and optional `feedback`. Only admins may review another user's submission; feedback is required for revision requests and rejections. Decisions are stored with reviewer and timestamp, and final decisions cannot be changed. Rejections also append a visible comment recording the admin and reason.
+- `POST /api/tasks/:taskId/submissions` lets the assigned member submit a completed task with a required `description` (up to 5,000 characters). A new submission is allowed after a reviewer requests a revision; duplicate active or final submissions are rejected.
+- `GET /api/submissions` lists all submissions in the authenticated member's organisation; optional `taskId` and `status` filters are supported. Each entry includes task, team, assignee, and due-date metadata.
+- `GET /api/submissions/:id` retrieves any submission in the authenticated member's organisation.
+- `PATCH /api/submissions/:id/review` accepts `status` (`Under review`, `Revision requested`, `Approved`, or `Rejected`) and optional `feedback`. Any organisation member except the submitter may review; feedback is required for revision requests and rejections. Final decisions cannot be changed.
 - `POST /api/submissions/:id/files` accepts multipart form data with one or more files in the `files` field. Up to five files are allowed per submission, with a 10 MB limit per file; supported types include common documents, images, text/code files, ZIP, and Figma exports.
-- `GET /api/submissions/:id/files/:fileId` downloads an attachment after checking submission access.
-- `PATCH /api/submissions/:id/feedback` adds or updates formal feedback without changing the review status; only an admin may use it before a final decision.
-- `POST /api/submissions/:id/comments` adds a persistent comment visible to members of the same organisation.
-- `DELETE /api/submissions/:id/comments/:commentId` removes a comment; only workspace admins may delete comments.
+- `GET /api/submissions/:id/files/:fileId` downloads an attachment after checking organisation access.
+- `PATCH /api/submissions/:id/feedback` adds or updates formal feedback without changing the review status; any other organisation member may use it before a final decision.
+- `POST /api/submissions/:id/comments` adds a comment from any member of the same organisation.
+
+Submission, review, feedback, and comment activity is stored on each submission and displayed in the Approvals activity timeline. Submitters can add files and cannot review their own submissions.
 
 Uploads use Multer and are stored under the ignored `.orbit-data/submissions/` directory, outside the static web root. They are only served through the authenticated download endpoint.
 

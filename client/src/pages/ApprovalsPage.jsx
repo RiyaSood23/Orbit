@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { requestJson } from "../api.js";
 import { useAuth } from "../auth/AuthContext.jsx";
-import Modal from "../components/Modal.jsx";
+
+const reviewStatuses = ["Submitted", "Under review", "Revision requested", "Approved", "Rejected"];
 
 function formatDate(value) {
   const date = new Date(value);
@@ -10,99 +11,121 @@ function formatDate(value) {
     : new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
+function formatDueDate(value) {
+  const dateValue = String(value).includes("T") ? value : `${value}T00:00:00`;
+  const date = new Date(dateValue);
+  return Number.isNaN(date.getTime())
+    ? "Date unavailable"
+    : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+}
+
 function formatSize(bytes) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function reviewStatusClass(status) {
-  const classes = {
-    Submitted: "status-pending",
-    "Under review": "status-reviewing",
-    "Revision requested": "status-changes",
-    Approved: "status-approved",
-    Rejected: "status-rejected",
-  };
-  return `review-status ${classes[status] || "status-pending"}`;
+function statusClass(status) {
+  return `approval-status approval-status-${String(status || "unknown").toLowerCase().replace(/\s+/g, "-")}`;
 }
 
-function reviewStatusLabel(status) {
-  if (status === "Submitted") return "Pending review";
-  if (status === "Revision requested") return "Changes requested";
-  return status || "Pending review";
+function activityFor(submission) {
+  if (submission.activity?.length) return submission.activity;
+  const activity = [];
+  if (submission.createdAt) {
+    activity.push({
+      id: `submitted-${submission.id}`,
+      actorId: submission.submittedBy,
+      action: "submitted",
+      note: submission.description,
+      createdAt: submission.createdAt,
+    });
+  }
+  if (submission.reviewedAt && submission.reviewedBy) {
+    activity.push({
+      id: `review-${submission.id}`,
+      actorId: submission.reviewedBy,
+      action: submission.status === "Submitted" ? "feedback_added" : submission.status.toLowerCase().replace(/ /g, "_"),
+      note: submission.feedback || "",
+      createdAt: submission.reviewedAt,
+    });
+  }
+  (submission.comments || []).forEach((comment) => {
+    activity.push({
+      id: `comment-${comment.id}`,
+      actorId: comment.authorId,
+      action: "commented",
+      note: comment.text,
+      createdAt: comment.createdAt,
+    });
+  });
+  return activity.sort((left, right) => new Date(left.createdAt) - new Date(right.createdAt));
 }
 
-function initials(name) {
-  return String(name || "Member")
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0] || "")
-    .join("")
-    .toUpperCase();
+function activityLabel(action) {
+  return ({
+    submitted: "asked for review",
+    under_review: "started review",
+    revision_requested: "requested changes",
+    approved: "approved",
+    rejected: "rejected",
+    feedback_added: "shared feedback",
+    commented: "commented",
+  })[action] || "updated this submission";
 }
 
 function ApprovalsPage() {
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const [filter, setFilter] = useState("");
   const [submissions, setSubmissions] = useState([]);
   const [allSubmissions, setAllSubmissions] = useState([]);
-  const [adminTasks, setAdminTasks] = useState([]);
-  const [adminQueueError, setAdminQueueError] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [members, setMembers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [teamTasks, setTeamTasks] = useState([]);
+  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [submissionTeamId, setSubmissionTeamId] = useState("");
+  const [teamDataVersion, setTeamDataVersion] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [teamsLoading, setTeamsLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [submissionError, setSubmissionError] = useState("");
   const [directoryError, setDirectoryError] = useState("");
+  const [teamTasksError, setTeamTasksError] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [feedbackIsError, setFeedbackIsError] = useState(false);
   const [reviewFeedback, setReviewFeedback] = useState("");
   const [commentText, setCommentText] = useState("");
-  const [reviewDialog, setReviewDialog] = useState("");
-  const [dialogFeedback, setDialogFeedback] = useState("");
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [reviewing, setReviewing] = useState(false);
+  const submissionsRequest = useRef(0);
 
   const loadSubmissions = useCallback(async () => {
+    const requestId = ++submissionsRequest.current;
     setLoading(true);
     setSubmissionError("");
     try {
       const result = await requestJson("/api/submissions");
+      if (requestId !== submissionsRequest.current) return null;
       const allRecords = result.submissions || [];
+      const records = filter ? allRecords.filter((item) => item.status === filter) : allRecords;
       setAllSubmissions(allRecords);
-      setSubmissions(allRecords);
-      setSelectedId((current) => allRecords.some((item) => item.id === current) ? current : allRecords[0]?.id || "");
-      if (isAdmin) {
-        try {
-          const queue = await requestJson("/api/submissions/queue");
-          setAdminTasks(queue.tasks || []);
-          setAdminQueueError("");
-        } catch (error) {
-          setAdminTasks([]);
-          setAdminQueueError(error instanceof Error ? error.message : "The task queue could not be loaded.");
-        }
-      } else {
-        setAdminTasks([]);
-        setAdminQueueError("");
-      }
+      setSubmissions(records);
+      setSelectedId((current) => records.some((item) => item.id === current) ? current : records[0]?.id || "");
       return true;
     } catch (error) {
+      if (requestId !== submissionsRequest.current) return null;
       setSubmissionError(error instanceof Error ? error.message : "Submissions could not be loaded.");
       setSubmissions([]);
       setAllSubmissions([]);
       setSelectedId("");
-      setAdminTasks([]);
       return false;
     } finally {
-      setLoading(false);
+      if (requestId === submissionsRequest.current) setLoading(false);
     }
-  }, [isAdmin]);
+  }, [filter]);
 
   useEffect(() => {
     loadSubmissions();
@@ -110,24 +133,46 @@ function ApprovalsPage() {
 
   useEffect(() => {
     let active = true;
+    setTeamsLoading(true);
+    setTeamTasksError("");
     Promise.allSettled([requestJson("/api/members"), requestJson("/api/teams")]).then(async (results) => {
       if (!active) return;
-      if (results[0].status === "fulfilled") setMembers(results[0].value.users || []);
-      else setDirectoryError(results[0].reason instanceof Error ? results[0].reason.message : "Member details could not be loaded.");
-      if (results[1].status !== "fulfilled") return;
+      if (results[0].status === "fulfilled") {
+        setMembers(results[0].value.users || []);
+        setDirectoryError("");
+      } else {
+        setDirectoryError(results[0].reason instanceof Error ? results[0].reason.message : "Member details could not be loaded.");
+      }
+      if (results[1].status !== "fulfilled") {
+        setTeamTasksError(results[1].reason instanceof Error ? results[1].reason.message : "Teams could not be loaded.");
+        setTeamsLoading(false);
+        return;
+      }
+      setTeamTasksError("");
       const loadedTeams = results[1].value.teams || [];
       setTeams(loadedTeams);
+      setSelectedTeamId((current) => loadedTeams.some((team) => team.id === current)
+        ? current
+        : "");
+      setSubmissionTeamId((current) => loadedTeams.some((team) => team.id === current)
+        ? current
+        : loadedTeams[0]?.id || "");
       const dashboards = await Promise.allSettled(loadedTeams.map((team) =>
         requestJson(`/api/teams/${encodeURIComponent(team.id)}/dashboard`)
       ));
       if (active) {
         setTeamTasks(dashboards.flatMap((result) => result.status === "fulfilled" ? result.value.tasks || [] : []));
+        const failures = dashboards.filter((result) => result.status === "rejected");
+        if (failures.length) {
+          setTeamTasksError("Some team tasks could not be loaded. Retry to see all available work.");
+        }
       }
+      if (active) setTeamsLoading(false);
     });
     return () => {
       active = false;
     };
-  }, []);
+  }, [teamDataVersion]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -160,69 +205,41 @@ function ApprovalsPage() {
   }, [selectedId]);
 
   const memberById = useMemo(() => new Map(members.map((member) => [member.id, member])), [members]);
-  const taskById = useMemo(
-    () => new Map([...teamTasks, ...adminTasks].map((task) => [task.id, task])),
-    [adminTasks, teamTasks]
-  );
-  const canReview = Boolean(isAdmin && selectedSubmission && selectedSubmission.submittedBy !== user?.id);
+  const taskById = useMemo(() => new Map(teamTasks.map((task) => [task.id, task])), [teamTasks]);
+  const selectedTeam = teams.find((team) => team.id === selectedTeamId);
+  const submissionTeam = teams.find((team) => team.id === submissionTeamId);
+  const canReview = Boolean(selectedSubmission && selectedSubmission.submittedBy !== user?.id);
   const isSubmitter = Boolean(selectedSubmission && selectedSubmission.submittedBy === user?.id);
-  const selectedTask = selectedSubmission ? taskById.get(selectedSubmission.taskId) : null;
-  const selectedTeam = selectedTask ? teams.find((team) => team.id === selectedTask.teamId) : null;
-  const canDownloadFiles = Boolean(selectedTask && (
-    ["manager", "admin"].includes(user?.role || "member")
-    || selectedTask.assignee === user?.id
-    || selectedTeam?.leaderId === user?.id
-    || selectedTeam?.members?.some((member) => member.userId === user?.id)
-  ));
-  const teamLead = selectedTeam ? memberById.get(selectedTeam.leaderId) : null;
-  const canAskLead = Boolean(canReview && teamLead && teamLead.id !== user?.id);
-  const submitter = selectedSubmission ? memberById.get(selectedSubmission.submittedBy) : null;
-  const reviewer = selectedSubmission?.reviewedBy ? memberById.get(selectedSubmission.reviewedBy) : null;
-  const collaborators = [
-    selectedTask?.assignee ? [memberById.get(selectedTask.assignee), "Assignee"] : [submitter, "Assignee"],
-    [reviewer, "Reviewer"],
-    [teamLead, "Lead"],
-  ].filter(([member]) => member).filter(([member], index, list) =>
-    list.findIndex(([other]) => other.id === member.id) === index
+  const selectedTask = selectedSubmission
+    ? selectedSubmission.task || taskById.get(selectedSubmission.taskId)
+    : null;
+  const selectedActivity = useMemo(
+    () => selectedSubmission ? activityFor(selectedSubmission) : [],
+    [selectedSubmission]
   );
-  const activity = selectedSubmission ? [
-    {
-      id: "submitted",
-      title: `${submitter?.name || "A team member"} submitted the work`,
-      date: selectedSubmission.createdAt,
-      description: selectedSubmission.description,
-      dot: "dot-blue",
-    },
-    ...(selectedSubmission.reviewedAt || selectedSubmission.feedback ? [{
-      id: "review",
-      title: selectedSubmission.status === "Revision requested"
-        ? "Changes were requested"
-        : selectedSubmission.status === "Approved"
-          ? "The submission was approved"
-          : selectedSubmission.status === "Rejected"
-            ? "The submission was rejected"
-            : `${reviewer?.name || "A reviewer"} shared feedback`,
-      date: selectedSubmission.reviewedAt || selectedSubmission.updatedAt,
-      description: selectedSubmission.feedback || `Current status: ${selectedSubmission.status}.`,
-      dot: selectedSubmission.status === "Approved" ? "dot-green" : "dot-purple",
-    }] : []),
-  ] : [];
   const existingByTask = new Map();
-  for (const submission of [...allSubmissions].sort(
-    (left, right) => new Date(right.createdAt) - new Date(left.createdAt)
-  )) {
-    if (!existingByTask.has(submission.taskId)) existingByTask.set(submission.taskId, submission);
+  for (const submission of allSubmissions) {
+    if (submission.submittedBy === user?.id && !existingByTask.has(submission.taskId)) {
+      existingByTask.set(submission.taskId, submission);
+    }
   }
-  const latestSubmissionByTask = existingByTask;
   const readyTasks = teamTasks.filter((task) => {
-    const team = teams.find((item) => item.id === task.teamId);
-    const isTaskMember = task.assignee === user?.id
-      || team?.leaderId === user?.id
-      || team?.members?.some((member) => member.userId === user?.id);
-    if (!isTaskMember || task.status !== "Completed") return false;
+    if (task.teamId !== submissionTeamId || task.assignee !== user?.id || task.status !== "Completed") return false;
     const existing = existingByTask.get(task.id);
     return !existing || existing.status === "Revision requested";
   });
+  const visibleSubmissions = submissions.filter((submission) => (
+    !selectedTeamId
+    || (submission.task?.teamId || taskById.get(submission.taskId)?.teamId) === selectedTeamId
+  ));
+
+  useEffect(() => {
+    setSelectedId((current) => (
+      visibleSubmissions.some((submission) => submission.id === current)
+        ? current
+        : visibleSubmissions[0]?.id || ""
+    ));
+  }, [selectedTeamId, submissions, teamTasks]);
 
   function showMessage(message, isError = false) {
     setFeedbackMessage(message);
@@ -234,9 +251,10 @@ function ApprovalsPage() {
     setReviewFeedback(submission.feedback || "");
     setSubmissions((current) => {
       const found = current.some((item) => item.id === submission.id);
-      return found
-        ? current.map((item) => item.id === submission.id ? submission : item)
-        : [submission, ...current];
+      if (filter && submission.status !== filter) {
+        return current.filter((item) => item.id !== submission.id);
+      }
+      return found ? current.map((item) => item.id === submission.id ? submission : item) : [submission, ...current];
     });
     setAllSubmissions((current) => {
       const found = current.some((item) => item.id === submission.id);
@@ -294,8 +312,8 @@ function ApprovalsPage() {
       const refreshed = await loadSubmissions();
       if (!uploadFailed) {
         showMessage(
-          refreshed ? "Your work was submitted for admin review." : "Submission created, but the list could not be refreshed.",
-          !refreshed,
+          refreshed === false ? "Submission created, but the list could not be refreshed." : "Your work was submitted for review.",
+          refreshed === false,
         );
       }
     } catch (error) {
@@ -357,32 +375,9 @@ function ApprovalsPage() {
     }
   }
 
-  async function deleteComment(commentId) {
+  async function submitReview(status) {
     if (!selectedSubmission) return;
-    setReviewing(true);
-    showMessage("");
-    try {
-      const result = await requestJson(
-        `/api/submissions/${encodeURIComponent(selectedSubmission.id)}/comments/${encodeURIComponent(commentId)}`,
-        { method: "DELETE" }
-      );
-      updateSubmission(result.submission);
-      showMessage("Comment deleted.");
-    } catch (error) {
-      showMessage(error instanceof Error ? error.message : "The comment could not be deleted.", true);
-    } finally {
-      setReviewing(false);
-    }
-  }
-
-  function openReviewDialog(name) {
-    setDialogFeedback(reviewFeedback);
-    setReviewDialog(name);
-  }
-
-  async function submitReview(status, feedbackValue = dialogFeedback) {
-    if (!selectedSubmission) return;
-    const feedback = feedbackValue.trim();
+    const feedback = reviewFeedback.trim();
     if (["Revision requested", "Rejected"].includes(status) && !feedback) {
       showMessage(`Feedback is required to ${status === "Rejected" ? "reject" : "request changes"}.`, true);
       return;
@@ -396,7 +391,6 @@ function ApprovalsPage() {
       });
       updateSubmission(result.submission);
       showMessage(`Submission marked ${status.toLowerCase()}.`);
-      setReviewDialog("");
     } catch (error) {
       showMessage(error instanceof Error ? error.message : "The review could not be saved.", true);
     } finally {
@@ -404,377 +398,256 @@ function ApprovalsPage() {
     }
   }
 
-  async function requestLeadReview(event) {
+  async function saveFeedback(event) {
     event.preventDefault();
-    const note = dialogFeedback.trim();
-    if (!selectedSubmission || !note) {
-      showMessage("Describe what the team lead should review.", true);
+    if (!selectedSubmission || !reviewFeedback.trim()) {
+      showMessage("Enter feedback before saving.", true);
       return;
     }
     setReviewing(true);
     showMessage("");
     try {
-      const result = await requestJson(`/api/submissions/${encodeURIComponent(selectedSubmission.id)}/comments`, {
-        method: "POST",
-        body: JSON.stringify({ text: `Lead review requested: ${note}` }),
+      const result = await requestJson(`/api/submissions/${encodeURIComponent(selectedSubmission.id)}/feedback`, {
+        method: "PATCH",
+        body: JSON.stringify({ feedback: reviewFeedback.trim() }),
       });
       updateSubmission(result.submission);
-      setReviewDialog("");
-      setDialogFeedback("");
-      showMessage("Review request posted to the submission comments.");
+      showMessage("Feedback saved.");
     } catch (error) {
-      showMessage(error instanceof Error ? error.message : "The review request could not be posted.", true);
+      showMessage(error instanceof Error ? error.message : "Feedback could not be saved.", true);
     } finally {
       setReviewing(false);
     }
   }
 
   return (
-    <div className="approvals-page approval-review-page">
-      <header className="approval-page-header">
+    <div className="approvals-page">
+      <header className="management-page-header">
         <div>
-          <p className="page-eyebrow">Workspace / Approvals</p>
-          <h1>Review task</h1>
-          <p>Check the submission and share feedback with your team.</p>
+          <p className="page-eyebrow">Review and feedback</p>
+          <h1>Approvals</h1>
+          <p>View and review submissions from everyone in your organization.</p>
         </div>
-        <div className="approval-current-user">
-          <span>Viewing as</span>
-          <strong>{user?.name || user?.email || "Member"}</strong>
-          <small>{user?.role || "member"}</small>
-        </div>
-      </header>
-
-      {isAdmin && (
-        <section className="admin-task-queue" aria-labelledby="admin-task-queue-title">
-          <div className="admin-task-queue-heading">
-            <div>
-              <h2 id="admin-task-queue-title">All tasks</h2>
-              <p>Track task progress and open any submission sent for review.</p>
-            </div>
-            <span>{adminTasks.length} tasks</span>
-          </div>
-          {adminQueueError && <p className="management-feedback is-error" role="alert">{adminQueueError}</p>}
-          {loading && <p className="management-state" role="status">Loading task queue…</p>}
-          {!loading && !adminQueueError && !adminTasks.length && (
-            <p className="management-state">There are no tasks in this workspace yet.</p>
-          )}
-          {adminTasks.length > 0 && (
-            <div className="admin-task-table-scroll">
-              <table className="admin-task-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Task</th>
-                    <th scope="col">Team / assignee</th>
-                    <th scope="col">Task status</th>
-                    <th scope="col">Submission</th>
-                    <th scope="col"><span className="visually-hidden">Action</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {adminTasks.map((task) => {
-                    const submission = latestSubmissionByTask.get(task.id);
-                    const team = teams.find((item) => item.id === task.teamId);
-                    const assignee = memberById.get(task.assignee);
-                    return (
-                      <tr key={task.id}>
-                        <td>
-                          <strong>{task.title || "Untitled task"}</strong>
-                          <small>{task.id}</small>
-                        </td>
-                        <td>
-                          <strong>{team?.name || task.team || "Unassigned team"}</strong>
-                          <small>{assignee?.name || task.assignee || "Unassigned"}</small>
-                        </td>
-                        <td><span className="admin-task-status">{task.status || "Unknown"}</span></td>
-                        <td>{submission ? reviewStatusLabel(submission.status) : "Not submitted"}</td>
-                        <td>
-                          {submission && (
-                            <button
-                              className="admin-task-review-button"
-                              type="button"
-                              onClick={() => setSelectedId(submission.id)}
-                            >
-                              {selectedId === submission.id ? "Selected" : "Review"}
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-      )}
-
-      <div className="approval-submission-toolbar">
-        <label className="approval-submission-picker">
-          Select submission
-          <select
-            value={selectedId}
-            onChange={(event) => setSelectedId(event.target.value)}
-            disabled={!submissions.length}
-          >
-            {!submissions.length && <option value="">No submissions yet</option>}
-            {submissions.map((submission) => (
-              <option key={submission.id} value={submission.id}>
-                {taskById.get(submission.taskId)?.title || `Task ${submission.taskId}`} — {reviewStatusLabel(submission.status)}
-              </option>
-            ))}
+        <label className="management-filter">
+          Status
+          <select value={filter} onChange={(event) => setFilter(event.target.value)}>
+            <option value="">All statuses</option>
+            {reviewStatuses.map((status) => <option key={status}>{status}</option>)}
           </select>
         </label>
-        <button type="button" className="management-secondary-button" onClick={loadSubmissions} disabled={loading}>
-          {loading ? "Refreshing…" : "Refresh"}
-        </button>
-      </div>
+      </header>
 
-      {feedbackMessage && (
-        <p className={`management-feedback${feedbackIsError ? " is-error" : ""}`} role={feedbackIsError ? "alert" : "status"}>
-          {feedbackMessage}
-        </p>
-      )}
+      <section className="management-card approval-team-filter">
+        <label className="management-filter" htmlFor="approval-team">
+          Team
+          <select
+            id="approval-team"
+            value={selectedTeamId}
+            onChange={(event) => setSelectedTeamId(event.target.value)}
+            disabled={teamsLoading || !teams.length}
+          >
+            {!teams.length && <option value="">No teams available</option>}
+            <option value="">All teams</option>
+            {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+          </select>
+        </label>
+        <p>The history shows every team by default. Choose a team to filter it; the submit-work form has its own team selector.</p>
+        {teamTasksError && (
+          <p className="management-feedback is-error" role="alert">
+            {teamTasksError}{" "}
+            <button type="button" className="management-text-button" onClick={() => setTeamDataVersion((version) => version + 1)}>
+              Retry
+            </button>
+          </p>
+        )}
+      </section>
+
+      {feedbackMessage && <p className={`management-feedback${feedbackIsError ? " is-error" : ""}`} role={feedbackIsError ? "alert" : "status"}>{feedbackMessage}</p>}
       {directoryError && <p className="management-feedback is-error" role="alert">{directoryError}</p>}
 
-      {loading && <p className="management-state" role="status">Loading submissions…</p>}
-      {!loading && submissionError && (
-        <div className="management-state management-state-error" role="alert">
-          <span>{submissionError}</span>
-          <button type="button" className="management-text-button" onClick={loadSubmissions}>Retry</button>
-        </div>
-      )}
-      {!loading && !submissionError && !selectedSubmission && (
-        <section className="review-card approval-empty-state">
-          <div className="task-heading">
-            <div>
-              <span className="review-status status-pending">No submission selected</span>
-              <h2>Review task</h2>
-              <p className="task-description">Completed work submitted by your team will appear here for comments and review.</p>
-            </div>
+      <section className="management-card submission-create-card">
+          <div className="management-card-heading">
+            <div><h2>Submit work for review</h2><p>{submissionTeam ? `${submissionTeam.name}: ` : ""}select one of your completed tasks to send for review.</p></div>
           </div>
-        </section>
-      )}
-
-      {selectedSubmission && (
-        <section className="review-card" aria-labelledby="approval-task-title">
-          <div className="action-toolbar">
-            <span className="toolbar-label">{canReview ? "Admin review actions" : "Submission activity"}</span>
-            <div className="action-buttons">
-              {canReview && ["Submitted", "Under review"].includes(selectedSubmission.status) && (
-                <>
-                  <button className="button button-warning" type="button" onClick={() => openReviewDialog("changes")} disabled={reviewing}>Request Changes</button>
-                  {canAskLead && <button className="button button-primary" type="button" onClick={() => openReviewDialog("lead")} disabled={reviewing}>Ask Lead to Review</button>}
-                  <button className="button button-success" type="button" onClick={() => submitReview("Approved", "")} disabled={reviewing}>Approve</button>
-                  <button className="button button-danger" type="button" onClick={() => openReviewDialog("reject")} disabled={reviewing}>Reject</button>
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="task-heading">
-            <div>
-              <span className={reviewStatusClass(selectedSubmission.status)}>{reviewStatusLabel(selectedSubmission.status)}</span>
-              <h2 id="approval-task-title">{selectedTask?.title || "Task submission"}</h2>
-              <p className="task-description">{selectedTask?.description || selectedSubmission.description}</p>
-            </div>
-            <div className="task-code">{selectedTask?.id || selectedSubmission.taskId}</div>
-          </div>
-
-          <div className="task-details">
-            <div><span className="detail-label">Assigned member</span><strong>{memberById.get(selectedTask?.assignee)?.name || submitter?.name || "Unknown"}</strong></div>
-            <div><span className="detail-label">Due date</span><strong>{selectedTask?.dueDate ? formatDate(selectedTask.dueDate) : "Not set"}</strong></div>
-            <div><span className="detail-label">Submitted</span><strong>{formatDate(selectedSubmission.createdAt)}</strong></div>
-            <div className="approval-submission-files">
-              <span className="detail-label">Submission</span>
-              {selectedSubmission.files?.length ? selectedSubmission.files.map((file) => (
-                canDownloadFiles ? (
-                  <a
-                    key={file.id}
-                    className="submission-link"
-                    href={`/api/submissions/${encodeURIComponent(selectedSubmission.id)}/files/${encodeURIComponent(file.id)}`}
-                    download={file.originalName}
-                  >
-                    {file.originalName} <small>({formatSize(file.size)})</small>
-                  </a>
-                ) : (
-                  <span key={file.id} className="submission-link">
-                    {file.originalName} <small>({formatSize(file.size)})</small>
-                  </span>
-                )
-              )) : <strong>No files attached</strong>}
-              {isSubmitter && selectedSubmission.status === "Submitted" && (selectedSubmission.files?.length || 0) < 5 && (
-                <label className="approval-upload-more">Add files<input type="file" multiple disabled={submitting} onChange={uploadMoreFiles} /></label>
-              )}
-            </div>
-          </div>
-
-          {selectedSubmission.feedback && (
-            <div className="approval-formal-feedback">
-              <strong>Review feedback</strong>
-              <p>{selectedSubmission.feedback}</p>
-            </div>
-          )}
-
-          <div className="workspace-grid">
-            <section className="timeline-section" aria-labelledby="activity-title">
-              <div className="section-heading">
-                <h3 id="activity-title">Activity</h3>
-                <span>Latest updates</span>
-              </div>
-              {detailLoading ? <p className="management-state" role="status">Loading activity…</p> : (
-                <ol className="timeline">
-                  {activity.map((item) => (
-                    <li key={item.id}>
-                      <span className={`timeline-dot ${item.dot}`} />
-                      <div>
-                        <strong>{item.title}</strong>
-                        <time>{formatDate(item.date)}</time>
-                        <p>{item.description}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </section>
-
-            <section className="collaborators-section" aria-labelledby="collaborators-title">
-              <div className="section-heading"><h3 id="collaborators-title">Collaborators</h3></div>
-              {collaborators.length ? collaborators.map(([member, role]) => (
-                <div className="collaborator" key={member.id}>
-                  <span className="avatar avatar-green">{initials(member.name)}</span>
-                  <div><strong>{member.name}</strong><span>{role}</span></div>
-                </div>
-              )) : <p className="management-state">Collaborator details are unavailable.</p>}
-            </section>
-          </div>
-
-          {selectedSubmission.status === "Revision requested" && isSubmitter && (
-            <p className="approval-revision-note">Your reviewer requested changes. Update the completed work and submit a new version above.</p>
-          )}
-
-          <section className="comments-section" aria-labelledby="comments-title">
-            <div className="section-heading">
-              <h3 id="comments-title">Comments and feedback</h3>
-              <span>{selectedSubmission.comments?.length || 0} messages</span>
-            </div>
-            {selectedSubmission.comments?.length ? (
-              <div className="conversation">
-                {selectedSubmission.comments.map((comment) => {
-                  const author = memberById.get(comment.authorId);
-                  return (
-                    <article className="message" key={comment.id}>
-                      <span className="avatar avatar-blue">{initials(author?.name)}</span>
-                      <div>
-                        <div className="message-meta"><strong>{author?.name || "Workspace member"}</strong><time>{formatDate(comment.createdAt)}</time></div>
-                        <p>{comment.text}</p>
-                      </div>
-                      {isAdmin && (
-                        <button
-                          className="comment-delete-button"
-                          type="button"
-                          onClick={() => deleteComment(comment.id)}
-                          disabled={reviewing}
-                          aria-label={`Delete comment from ${author?.name || "workspace member"}`}
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </article>
-                  );
-                })}
-              </div>
-            ) : <p className="management-state">No comments yet. Start the conversation with your team.</p>}
-            <form className="comment-form" onSubmit={addComment}>
-              <label htmlFor="approval-comment">Add a comment</label>
-              <div className="comment-input-row">
-                <textarea
-                  id="approval-comment"
-                  value={commentText}
-                  onChange={(event) => setCommentText(event.target.value)}
-                  rows="2"
-                  maxLength="2000"
+          {teamsLoading ? <p className="management-state" role="status">Loading team tasks…</p> : teams.length ? (
+            <form className="submission-create-form" onSubmit={submitWork}>
+              <label>
+                Team
+                <select
+                  value={submissionTeamId}
+                  onChange={(event) => setSubmissionTeamId(event.target.value)}
                   required
-                  placeholder="Write feedback for the team…"
-                />
-                <button className="button button-primary" type="submit" disabled={reviewing || !commentText.trim()}>
-                  {reviewing ? "Sending…" : "Send Comment"}
-                </button>
-              </div>
+                >
+                  {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+                </select>
+              </label>
+              {readyTasks.length ? <>
+                <label>
+                  Completed task
+                  <select name="taskId" required>
+                    {readyTasks.map((task) => <option key={task.id} value={task.id}>{task.title}</option>)}
+                  </select>
+                </label>
+                <label>
+                  Submission notes
+                  <textarea name="description" rows="3" maxLength="5000" required placeholder="Summarize what you completed and anything the reviewer should know." />
+                </label>
+                <label>
+                  Attach files <span className="management-optional">(optional, up to 5 files / 10 MB each)</span>
+                  <input type="file" multiple onChange={(event) => setSelectedFiles(Array.from(event.target.files || []))} />
+                </label>
+                {selectedFiles.length > 0 && <p className="management-field-hint">{selectedFiles.length} file(s) selected.</p>}
+                <button type="submit" className="management-primary-button" disabled={submitting}>{submitting ? "Submitting…" : "Send task for review"}</button>
+              </> : (
+                <p className="management-state">
+                  {teamTasksError
+                    ? "Task options are unavailable until the team tasks load."
+                    : "No completed tasks assigned to you are ready to submit in this team. Complete one of your tasks from the Team page first; it will appear here."}
+                </p>
+              )}
             </form>
-          </section>
+          ) : <p className="management-state">No teams are available for this organization.</p>}
+      </section>
+
+      <div className="approvals-workspace">
+        <section className="management-card approvals-queue" aria-labelledby="submission-queue-title">
+          <div className="management-card-heading">
+            <div><h2 id="submission-queue-title">{selectedTeam ? `${selectedTeam.name} submission history` : "Organization approval queue"}</h2><p>{visibleSubmissions.length} submission(s)</p></div>
+            <button type="button" className="management-text-button" onClick={loadSubmissions} disabled={loading}>Refresh</button>
+          </div>
+          {loading ? <p className="management-state" role="status">Loading submissions…</p> : submissionError ? (
+            <div className="management-state management-state-error" role="alert"><span>{submissionError}</span><button type="button" className="management-text-button" onClick={loadSubmissions}>Retry</button></div>
+          ) : visibleSubmissions.length ? (
+            <ul className="approval-submission-list">
+              {visibleSubmissions.map((submission) => {
+                const task = submission.task || taskById.get(submission.taskId);
+                const submitter = memberById.get(submission.submittedBy);
+                const teamName = teams.find((team) => team.id === task?.teamId)?.name || task?.team;
+                return (
+                  <li key={submission.id}>
+                    <button className={`approval-submission-button${selectedId === submission.id ? " is-selected" : ""}`} type="button" onClick={() => setSelectedId(submission.id)}>
+                      <span className="approval-submission-top"><strong>{task?.title || `Task ${submission.taskId}`}</strong><span className={statusClass(submission.status)}>{submission.status}</span></span>
+                      <small>{submitter?.name || "Workspace member"}{teamName ? ` · ${teamName}` : ""} · {formatDate(submission.updatedAt || submission.createdAt)}</small>
+                      <span className="approval-submission-preview">{submission.description}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : <p className="management-state">
+            {selectedTeam
+              ? `No previous submissions for ${selectedTeam.name} yet.`
+              : "No submissions have been sent for review in this organization yet."}
+          </p>}
         </section>
-      )}
 
-      {readyTasks.length > 0 && (
-        <details className="submission-create-panel" open={!submissions.length}>
-          <summary>Submit completed work ({readyTasks.length})</summary>
-          <form className="submission-create-form" onSubmit={submitWork}>
-            <label>
-              Completed task
-              <select name="taskId" required>
-                {readyTasks.map((task) => <option key={task.id} value={task.id}>{task.title}</option>)}
-              </select>
-            </label>
-            <label>
-              Submission notes
-              <textarea name="description" rows="3" maxLength="5000" required placeholder="Describe the work you completed." />
-            </label>
-            <label>
-              Attach files <span className="management-optional">(optional, up to 5 files / 10 MB each)</span>
-              <input type="file" multiple onChange={(event) => setSelectedFiles(Array.from(event.target.files || []))} />
-            </label>
-            {selectedFiles.length > 0 && <p className="management-field-hint">{selectedFiles.length} file(s) selected.</p>}
-            <button type="submit" className="management-primary-button" disabled={submitting}>
-              {submitting ? "Submitting…" : "Submit for admin review"}
-            </button>
-          </form>
-        </details>
-      )}
+        <section className="management-card approval-detail" aria-labelledby="submission-detail-title">
+          {detailLoading ? <p className="management-state" role="status">Loading submission…</p> : !selectedSubmission ? (
+            <div className="approval-detail-empty"><h2 id="submission-detail-title">Select a submission</h2><p>Choose an item from the list to view its details and activity.</p></div>
+          ) : (
+            <>
+              <div className="approval-detail-header">
+                <div>
+                  <p className="page-eyebrow">Task {selectedSubmission.taskId}</p>
+                  <h2 id="submission-detail-title">{selectedTask?.title || "Task submission"}</h2>
+                  <p>{memberById.get(selectedSubmission.submittedBy)?.name || "Workspace member"} · Submitted {formatDate(selectedSubmission.createdAt)}</p>
+                </div>
+                <span className={statusClass(selectedSubmission.status)}>{selectedSubmission.status}</span>
+              </div>
 
-      {reviewDialog && selectedSubmission && (
-        <Modal
-          open
-          title={reviewDialog === "changes" ? "Request changes" : reviewDialog === "reject" ? "Reject task" : "Ask the team lead to review"}
-          onClose={() => setReviewDialog("")}
-          className="app-modal review-action-dialog"
-        >
-          <form
-            className="management-form"
-            onSubmit={reviewDialog === "lead"
-              ? requestLeadReview
-              : (event) => {
-                event.preventDefault();
-                submitReview(reviewDialog === "reject" ? "Rejected" : "Revision requested");
-              }}
-          >
-            <p className="dialog-description">
-              {reviewDialog === "changes"
-                ? "Describe what the assignee needs to update before this task can be approved."
-                : reviewDialog === "reject"
-                  ? "Tell the assignee why this submission was rejected."
-                  : `Write a review request for ${teamLead?.name || "the team lead"}.`}
-            </p>
-            <label>
-              {reviewDialog === "changes" ? "Required changes" : reviewDialog === "reject" ? "Reason for rejection" : "Review request"}
-              <textarea
-                rows="5"
-                maxLength="5000"
-                value={dialogFeedback}
-                onChange={(event) => setDialogFeedback(event.target.value)}
-                required
-                autoFocus
-                placeholder="Write your feedback…"
-              />
-            </label>
-            <div className="management-form-actions">
-              <button type="button" className="management-secondary-button" onClick={() => setReviewDialog("")}>Cancel</button>
-              <button type="submit" className={reviewDialog === "reject" ? "management-danger-button" : "management-primary-button"} disabled={reviewing}>
-                {reviewing ? "Saving…" : reviewDialog === "changes" ? "Request Changes" : reviewDialog === "reject" ? "Reject Task" : "Send Review Request"}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
+              {canReview && ["Submitted", "Under review"].includes(selectedSubmission.status) && (
+                <section className="approval-detail-section approval-review-tools">
+                  <h3>Review this submission</h3>
+                  <form className="management-form" onSubmit={saveFeedback}>
+                    <label>Review note<textarea rows="3" maxLength="5000" value={reviewFeedback} onChange={(event) => setReviewFeedback(event.target.value)} placeholder="Add a note for the submitter. A note is required to request changes or reject." /></label>
+                    <div className="approval-action-buttons">
+                      {selectedSubmission.status === "Submitted" && <button type="button" className="management-secondary-button" disabled={reviewing} onClick={() => submitReview("Under review")}>Start review</button>}
+                      <button type="submit" className="management-secondary-button" disabled={reviewing || !reviewFeedback.trim()}>Save note</button>
+                      <button type="button" className="management-warning-button" disabled={reviewing} onClick={() => submitReview("Revision requested")}>Request changes</button>
+                      <button type="button" className="management-primary-button" disabled={reviewing} onClick={() => submitReview("Approved")}>Approve</button>
+                      <button type="button" className="management-danger-button" disabled={reviewing} onClick={() => submitReview("Rejected")}>Reject</button>
+                    </div>
+                  </form>
+                </section>
+              )}
+
+              <section className="approval-meta-grid" aria-label="Task details">
+                <div><small>Team</small><strong>{teams.find((team) => team.id === selectedTask?.teamId)?.name || selectedTask?.team || "Team unavailable"}</strong></div>
+                <div><small>Assignee</small><strong>{memberById.get(selectedTask?.assignee)?.name || "Unassigned"}</strong></div>
+                <div><small>Due date</small><strong>{selectedTask?.dueDate ? formatDueDate(selectedTask.dueDate) : "No due date"}</strong></div>
+              </section>
+
+              <section className="approval-detail-section">
+                <h3>Submission notes</h3>
+                <p className="approval-submission-description">{selectedSubmission.description}</p>
+              </section>
+
+              <section className="approval-detail-section">
+                <div className="approval-section-heading"><h3>Attached files</h3><span>{selectedSubmission.files?.length || 0}</span></div>
+                {selectedSubmission.files?.length ? (
+                  <ul className="approval-file-list">
+                    {selectedSubmission.files.map((file) => (
+                      <li key={file.id}>
+                        <span className="approval-file-icon" aria-hidden="true">↧</span>
+                        <span><strong>{file.originalName}</strong><small>{formatSize(file.size)}</small></span>
+                        <a href={`/api/submissions/${encodeURIComponent(selectedSubmission.id)}/files/${encodeURIComponent(file.id)}`} download={file.originalName}>Download</a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : <p className="management-state">No files attached.</p>}
+                {isSubmitter && selectedSubmission.status === "Submitted" && (selectedSubmission.files?.length || 0) < 5 && (
+                  <label className="approval-upload-more">Add files<input type="file" multiple disabled={submitting} onChange={uploadMoreFiles} /></label>
+                )}
+              </section>
+
+              <section className="approval-detail-section">
+                <div className="approval-section-heading"><h3>Activity</h3><span>{selectedActivity.length} update(s)</span></div>
+                {selectedActivity.length ? (
+                  <ol className="approval-activity-list">
+                    {selectedActivity.map((activity) => (
+                      <li key={activity.id}>
+                        <div className="approval-activity-heading">
+                          <strong>{memberById.get(activity.actorId)?.name || "Workspace member"} {activityLabel(activity.action)}</strong>
+                          <time>{formatDate(activity.createdAt)}</time>
+                        </div>
+                        {activity.note && <p>{activity.note}</p>}
+                      </li>
+                    ))}
+                  </ol>
+                ) : <p className="management-state">No activity recorded yet.</p>}
+              </section>
+
+              {selectedSubmission.feedback && (
+                <section className="approval-feedback-box">
+                  <h3>Reviewer feedback</h3>
+                  <p>{selectedSubmission.feedback}</p>
+                </section>
+              )}
+
+              {selectedSubmission.status === "Revision requested" && isSubmitter && <p className="approval-revision-note">Your reviewer requested a revision. Update the completed work and submit a new version above.</p>}
+
+              <section className="approval-detail-section">
+                <div className="approval-section-heading"><h3>Comments</h3><span>{selectedSubmission.comments?.length || 0}</span></div>
+                {selectedSubmission.comments?.length ? (
+                  <div className="approval-comments">
+                    {selectedSubmission.comments.map((comment) => (
+                      <article className="approval-comment" key={comment.id}>
+                        <span className="approval-comment-avatar">{(memberById.get(comment.authorId)?.name || "M").slice(0, 1).toUpperCase()}</span>
+                        <div><div className="approval-comment-meta"><strong>{memberById.get(comment.authorId)?.name || "Workspace member"}</strong><time>{formatDate(comment.createdAt)}</time></div><p>{comment.text}</p></div>
+                      </article>
+                    ))}
+                  </div>
+                ) : <p className="management-state">No comments yet.</p>}
+                <form className="approval-comment-form" onSubmit={addComment}>
+                  <label htmlFor="approval-comment">Add a comment</label>
+                  <textarea id="approval-comment" value={commentText} onChange={(event) => setCommentText(event.target.value)} rows="3" maxLength="2000" required placeholder="Write feedback for the team…" />
+                  <button type="submit" className="management-primary-button" disabled={reviewing || !commentText.trim()}>Send comment</button>
+                </form>
+              </section>
+            </>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

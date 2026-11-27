@@ -2841,15 +2841,103 @@ a {
 }
 
 .approval-review-tools {
-  border-top: 1px solid #e9efeb;
-  padding-top: 14px;
+  border: 1px solid #dfeae2;
+  border-radius: 10px;
+  padding: 13px;
+  background: #f7faf7;
 }
 
 .approval-action-buttons {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 7px;
+}
+
+.approval-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.approval-meta-grid > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  border-radius: 8px;
+  padding: 10px;
+  background: #f6f9f6;
+}
+
+.approval-meta-grid small {
+  color: #84938a;
+  font-size: 8px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.approval-meta-grid strong {
+  overflow-wrap: anywhere;
+  color: #496252;
+  font-size: 10px;
+}
+
+.approval-activity-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0 0 0 13px;
+  list-style: none;
+  border-left: 2px solid #dce9df;
+}
+
+.approval-activity-list li {
+  position: relative;
+  padding: 0 0 15px 12px;
+}
+
+.approval-activity-list li:last-child {
+  padding-bottom: 0;
+}
+
+.approval-activity-list li::before {
+  position: absolute;
+  top: 3px;
+  left: -19px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #4a805e;
+  content: "";
+}
+
+.approval-activity-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px 10px;
+}
+
+.approval-activity-heading strong {
+  color: #496252;
+  font-size: 10px;
+}
+
+.approval-activity-heading time {
+  color: #91a097;
+  font-size: 8px;
+}
+
+.approval-activity-list p {
+  margin: 5px 0 0;
+  color: #687b6f;
+  font-size: 10px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .approval-comments {
@@ -2941,9 +3029,25 @@ a {
   padding: 18px;
 }
 
+.approval-team-filter {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+}
+
+.approval-team-filter > .management-filter {
+  width: min(320px, 100%);
+}
+
+.approval-team-filter > p {
+  margin: 0 0 9px;
+  color: #71847a;
+  font-size: 11px;
+}
+
 .submission-create-form {
   display: grid;
-  grid-template-columns: minmax(180px, .8fr) minmax(230px, 1.2fr) minmax(180px, .8fr) auto;
+  grid-template-columns: minmax(140px, .7fr) minmax(190px, 1fr) minmax(230px, 1.2fr) minmax(180px, .8fr) auto;
   align-items: end;
   gap: 11px;
 }
@@ -2959,642 +3063,6 @@ a {
 .submission-create-form textarea {
   min-height: 40px;
   resize: vertical;
-}
-
-.approval-review-page {
-  gap: 16px;
-}
-
-.approval-page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.approval-page-header .page-eyebrow {
-  margin: 0 0 8px;
-}
-
-.approval-page-header h1 {
-  margin: 0;
-  color: #1a2e24;
-  font-size: 32px;
-  letter-spacing: -.03em;
-}
-
-.approval-page-header > div > p:last-child {
-  margin: 8px 0 0;
-  color: #6b8278;
-  font-size: 13px;
-}
-
-.approval-current-user {
-  display: grid;
-  gap: 4px;
-  min-width: 150px;
-  border: 1px solid #d8e8de;
-  border-radius: 9px;
-  padding: 10px 12px;
-  background: #fff;
-}
-
-.approval-current-user span,
-.approval-current-user small {
-  color: #83938a;
-  font-size: 10px;
-  text-transform: uppercase;
-}
-
-.approval-current-user strong {
-  color: #304b39;
-  font-size: 12px;
-}
-
-.approval-current-user small {
-  text-transform: capitalize;
-}
-
-.approval-submission-toolbar {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.admin-task-queue {
-  overflow: hidden;
-  border: 1px solid #d8e8de;
-  border-radius: 12px;
-  background: #fff;
-}
-
-.admin-task-queue-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px 20px;
-  border-bottom: 1px solid #e6eee8;
-}
-
-.admin-task-queue-heading h2 {
-  margin: 0;
-  color: #243f2e;
-  font-size: 16px;
-}
-
-.admin-task-queue-heading p {
-  margin: 5px 0 0;
-  color: #6b8278;
-  font-size: 11px;
-}
-
-.admin-task-queue-heading > span {
-  flex: 0 0 auto;
-  color: #6b8278;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.admin-task-queue > .management-feedback,
-.admin-task-queue > .management-state {
-  margin: 14px 20px;
-}
-
-.admin-task-table-scroll {
-  max-height: 390px;
-  overflow: auto;
-}
-
-.admin-task-table {
-  width: 100%;
-  min-width: 700px;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.admin-task-table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  padding: 10px 14px;
-  color: #6b8278;
-  background: #f7faf8;
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: .05em;
-  text-transform: uppercase;
-}
-
-.admin-task-table td {
-  border-top: 1px solid #edf2ee;
-  padding: 11px 14px;
-  color: #52695a;
-  font-size: 11px;
-  vertical-align: middle;
-}
-
-.admin-task-table td strong,
-.admin-task-table td small {
-  display: block;
-}
-
-.admin-task-table td strong {
-  color: #304b39;
-  font-size: 11px;
-}
-
-.admin-task-table td small {
-  margin-top: 4px;
-  color: #83938a;
-  font-size: 10px;
-}
-
-.admin-task-status {
-  display: inline-block;
-  border-radius: 999px;
-  padding: 5px 8px;
-  color: #52695a;
-  background: #edf3ef;
-  font-size: 10px;
-  font-weight: 750;
-  white-space: nowrap;
-}
-
-.admin-task-review-button,
-.comment-delete-button {
-  border: 1px solid #d8e8de;
-  border-radius: 6px;
-  padding: 6px 9px;
-  color: #3d6b54;
-  background: #fff;
-  cursor: pointer;
-  font: inherit;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.admin-task-review-button:hover,
-.comment-delete-button:hover {
-  background: #f2f8f4;
-}
-
-.comment-delete-button {
-  flex: 0 0 auto;
-  margin-left: auto;
-  color: #a53d49;
-}
-
-.comment-delete-button:disabled {
-  cursor: wait;
-  opacity: .6;
-}
-
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  clip-path: inset(50%);
-}
-
-.approval-submission-picker {
-  display: grid;
-  flex: 1;
-  gap: 5px;
-  color: #50675a;
-  font-size: 11px;
-  font-weight: 750;
-}
-
-.approval-submission-picker select {
-  min-height: 40px;
-  border: 1px solid #dce8df;
-  border-radius: 8px;
-  padding: 8px 10px;
-  color: #294435;
-  background: #fff;
-  font: inherit;
-  font-size: 12px;
-}
-
-.approval-review-page .review-card {
-  overflow: hidden;
-  border: 1px solid #d8e8de;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 12px 35px rgba(45, 90, 68, .08);
-}
-
-.approval-review-page .action-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  border-bottom: 1px solid #d8e8de;
-  padding: 18px 26px;
-  background: #f7faf8;
-}
-
-.approval-review-page .toolbar-label {
-  margin: 0;
-  color: #6b8278;
-  font-size: 11px;
-  font-weight: 750;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
-
-.approval-review-page .action-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 9px;
-}
-
-.approval-review-page .button {
-  min-height: 38px;
-  border: 0;
-  border-radius: 7px;
-  padding: 9px 13px;
-  color: #fff;
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.approval-review-page .button:disabled {
-  cursor: wait;
-  opacity: .6;
-}
-
-.approval-review-page .button-success {
-  background: #2d9c70;
-}
-
-.approval-review-page .button-warning {
-  color: #6a4b11;
-  background: #f6d78a;
-}
-
-.approval-review-page .button-danger {
-  background: #db5e6a;
-}
-
-.approval-review-page .button-primary {
-  background: #5d9a7a;
-}
-
-.approval-review-page .task-heading {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 30px 30px 20px;
-}
-
-.approval-review-page .task-heading h2 {
-  margin: 0 0 9px;
-  color: #1a2e24;
-  font-size: 25px;
-  letter-spacing: -.02em;
-}
-
-.review-status {
-  display: inline-block;
-  margin-bottom: 12px;
-  border-radius: 999px;
-  padding: 5px 10px;
-  font-size: 11px;
-  font-weight: 750;
-}
-
-.approval-review-page .status-pending {
-  color: #996c12;
-  background: #fff3d4;
-}
-
-.approval-review-page .status-reviewing {
-  color: #446c91;
-  background: #eaf3fb;
-}
-
-.approval-review-page .status-approved {
-  color: #19704d;
-  background: #daf4e8;
-}
-
-.approval-review-page .status-changes {
-  color: #895b09;
-  background: #ffebbc;
-}
-
-.approval-review-page .status-rejected {
-  color: #a53d49;
-  background: #ffe0e4;
-}
-
-.approval-review-page .task-description {
-  max-width: 700px;
-  margin: 0;
-  color: #6b8278;
-  font-size: 12px;
-  line-height: 1.65;
-  white-space: pre-wrap;
-}
-
-.approval-review-page .task-code {
-  color: #6b8278;
-  font-size: 12px;
-  font-weight: 750;
-  overflow-wrap: anywhere;
-}
-
-.approval-review-page .task-details {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
-  margin: 0 30px;
-  border-top: 1px solid #d8e8de;
-  border-bottom: 1px solid #d8e8de;
-  padding: 20px 0;
-}
-
-.approval-review-page .detail-label {
-  display: block;
-  margin: 0 0 7px;
-  color: #6b8278;
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-}
-
-.approval-review-page .task-details strong,
-.approval-review-page .submission-link {
-  color: #3d6b54;
-  font-size: 12px;
-  overflow-wrap: anywhere;
-}
-
-.approval-review-page .submission-link {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 700;
-}
-
-.approval-review-page .submission-link small {
-  color: #83938a;
-  font-size: 10px;
-}
-
-.approval-review-page .approval-upload-more {
-  display: grid;
-  gap: 5px;
-  margin-top: 9px;
-  color: #52695a;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.approval-review-page .approval-upload-more input {
-  max-width: 100%;
-  font-size: 10px;
-}
-
-.approval-formal-feedback {
-  margin: 16px 30px 0;
-  border-left: 3px solid #e2bf62;
-  border-radius: 5px;
-  padding: 12px;
-  background: #fffaeb;
-}
-
-.approval-formal-feedback strong {
-  color: #716142;
-  font-size: 12px;
-}
-
-.approval-formal-feedback p {
-  margin: 6px 0 0;
-  color: #716142;
-  font-size: 12px;
-  line-height: 1.55;
-  white-space: pre-wrap;
-}
-
-.approval-review-page .workspace-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(200px, 1fr);
-  gap: 42px;
-  padding: 27px 30px;
-}
-
-.approval-review-page .section-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 18px;
-}
-
-.approval-review-page .section-heading h3 {
-  margin: 0;
-  color: #243f2e;
-  font-size: 16px;
-}
-
-.approval-review-page .section-heading > span {
-  color: #83938a;
-  font-size: 11px;
-}
-
-.approval-review-page .timeline {
-  display: grid;
-  gap: 21px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.approval-review-page .timeline li {
-  display: grid;
-  grid-template-columns: 12px minmax(0, 1fr);
-  gap: 13px;
-}
-
-.approval-review-page .timeline-dot {
-  width: 10px;
-  height: 10px;
-  margin-top: 4px;
-  border-radius: 50%;
-}
-
-.approval-review-page .dot-blue {
-  background: #4a9ee8;
-}
-
-.approval-review-page .dot-purple {
-  background: #5d9a7a;
-}
-
-.approval-review-page .dot-green {
-  background: #2d9c70;
-}
-
-.approval-review-page .timeline strong,
-.approval-review-page .message strong {
-  display: block;
-  color: #304b39;
-  font-size: 12px;
-}
-
-.approval-review-page .timeline time,
-.approval-review-page .message time {
-  display: block;
-  margin-top: 4px;
-  color: #83938a;
-  font-size: 10px;
-}
-
-.approval-review-page .timeline p,
-.approval-review-page .message p {
-  margin: 6px 0 0;
-  color: #6b8278;
-  font-size: 11px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
-.approval-review-page .collaborator {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  margin-bottom: 16px;
-}
-
-.approval-review-page .avatar {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
-  place-items: center;
-  border-radius: 50%;
-  color: #fff;
-  background: #5b83d4;
-  font-size: 10px;
-  font-weight: 750;
-}
-
-.approval-review-page .avatar.avatar-green {
-  background: #42a47c;
-}
-
-.approval-review-page .avatar.avatar-blue {
-  background: #5b83d4;
-}
-
-.approval-review-page .collaborator strong {
-  display: block;
-  color: #304b39;
-  font-size: 12px;
-}
-
-.approval-review-page .collaborator div > span {
-  color: #83938a;
-  font-size: 10px;
-}
-
-.approval-review-page .comments-section {
-  border-top: 1px solid #d8e8de;
-  padding: 25px 30px 30px;
-}
-
-.approval-review-page .conversation {
-  display: grid;
-  gap: 17px;
-  margin-bottom: 25px;
-}
-
-.approval-review-page .message {
-  display: flex;
-  align-items: flex-start;
-  gap: 11px;
-}
-
-.approval-review-page .comment-form label {
-  display: block;
-  margin-bottom: 8px;
-  color: #6b8278;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.approval-review-page .comment-input-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.approval-review-page .comment-input-row textarea {
-  width: 100%;
-  min-height: 72px;
-  resize: vertical;
-  border: 1px solid #d8e8de;
-  border-radius: 8px;
-  padding: 11px;
-  color: #1a2e24;
-  font: inherit;
-  font-size: 12px;
-}
-
-.approval-review-page .comment-input-row textarea:focus {
-  border-color: #5d9a7a;
-  outline: 3px solid rgba(93, 154, 122, .16);
-}
-
-.approval-revision-note {
-  margin: 0 30px 16px;
-  border-radius: 8px;
-  padding: 10px;
-  color: #805c16;
-  background: #fff5dd;
-  font-size: 11px;
-  line-height: 1.5;
-}
-
-.submission-create-panel {
-  border: 1px solid #d8e8de;
-  border-radius: 12px;
-  padding: 15px 18px;
-  background: #fff;
-}
-
-.submission-create-panel summary {
-  color: #304b39;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 750;
-}
-
-.submission-create-panel[open] summary {
-  margin-bottom: 15px;
-}
-
-.approval-empty-state .task-heading {
-  padding-bottom: 30px;
-}
-
-.review-action-dialog {
-  width: min(500px, calc(100% - 28px));
-}
-
-.review-action-dialog .dialog-description {
-  margin: 0 0 16px;
-  color: #6b8278;
-  font-size: 12px;
-  line-height: 1.55;
 }
 
 @media (max-width: 900px) {
@@ -3618,6 +3086,16 @@ a {
 
   .submission-create-form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .approval-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .approval-team-filter {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
   }
 }
 
@@ -3688,64 +3166,5 @@ a {
 
   .approval-detail-header {
     flex-direction: column;
-  }
-
-  .approval-page-header {
-    flex-direction: column;
-  }
-
-  .approval-current-user {
-    width: 100%;
-  }
-
-  .approval-review-page .action-toolbar {
-    align-items: flex-start;
-    flex-direction: column;
-    padding: 16px 18px;
-  }
-
-  .approval-review-page .task-heading,
-  .approval-review-page .workspace-grid,
-  .approval-review-page .comments-section {
-    padding-right: 18px;
-    padding-left: 18px;
-  }
-
-  .approval-review-page .task-heading {
-    flex-direction: column;
-  }
-
-  .approval-review-page .task-code {
-    display: none;
-  }
-
-  .approval-review-page .task-details {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-right: 18px;
-    margin-left: 18px;
-  }
-
-  .approval-review-page .workspace-grid {
-    grid-template-columns: 1fr;
-    gap: 24px;
-  }
-
-  .approval-formal-feedback {
-    margin-right: 18px;
-    margin-left: 18px;
-  }
-
-  .approval-review-page .comment-input-row {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .approval-submission-toolbar {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .approval-review-page .action-buttons {
-    width: 100%;
   }
 }
