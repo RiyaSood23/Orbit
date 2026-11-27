@@ -232,6 +232,24 @@ function ApprovalsPage() {
     !selectedTeamId
     || (submission.task?.teamId || taskById.get(submission.taskId)?.teamId) === selectedTeamId
   ));
+  const visibleAllSubmissions = allSubmissions.filter((submission) => (
+    !selectedTeamId
+    || (submission.task?.teamId || taskById.get(submission.taskId)?.teamId) === selectedTeamId
+  ));
+  const visibleTasks = teamTasks.filter((task) => !selectedTeamId || task.teamId === selectedTeamId);
+  const submissionsByTask = new Map();
+  for (const submission of allSubmissions) {
+    const previous = submissionsByTask.get(submission.taskId);
+    if (!previous || new Date(submission.createdAt) > new Date(previous.createdAt)) {
+      submissionsByTask.set(submission.taskId, submission);
+    }
+  }
+  const reviewCounts = {
+    tasks: visibleTasks.length,
+    awaiting: visibleAllSubmissions.filter((item) => ["Submitted", "Under review"].includes(item.status)).length,
+    approved: visibleAllSubmissions.filter((item) => item.status === "Approved").length,
+    rejected: visibleAllSubmissions.filter((item) => item.status === "Rejected").length,
+  };
 
   useEffect(() => {
     setSelectedId((current) => (
@@ -452,6 +470,7 @@ function ApprovalsPage() {
           </select>
         </label>
         <p>The history shows every team by default. Choose a team to filter it; the submit-work form has its own team selector.</p>
+        <button type="button" className="management-text-button" onClick={() => setTeamDataVersion((version) => version + 1)} disabled={teamsLoading}>Refresh team tasks</button>
         {teamTasksError && (
           <p className="management-feedback is-error" role="alert">
             {teamTasksError}{" "}
@@ -464,6 +483,29 @@ function ApprovalsPage() {
 
       {feedbackMessage && <p className={`management-feedback${feedbackIsError ? " is-error" : ""}`} role={feedbackIsError ? "alert" : "status"}>{feedbackMessage}</p>}
       {directoryError && <p className="management-feedback is-error" role="alert">{directoryError}</p>}
+
+      <section className="approval-stats" aria-label="Task and review statistics">
+        <article className="management-card approval-stat"><span>Team tasks</span><strong>{reviewCounts.tasks}</strong><small>Created in this workspace</small></article>
+        <article className="management-card approval-stat"><span>Awaiting review</span><strong>{reviewCounts.awaiting}</strong><small>Submitted or under review</small></article>
+        <article className="management-card approval-stat"><span>Approved</span><strong>{reviewCounts.approved}</strong><small>Final approved submissions</small></article>
+        <article className="management-card approval-stat"><span>Rejected</span><strong>{reviewCounts.rejected}</strong><small>Final rejected submissions</small></article>
+      </section>
+
+      <section className="management-card approval-task-tracking">
+        <div className="management-card-heading"><div><h2>{selectedTeam ? `${selectedTeam.name} task tracking` : "Team task tracking"}</h2><p>Newly created tasks appear here. A submission is recorded after the assignee completes the task and sends it for review.</p></div></div>
+        {teamsLoading ? <p className="management-state" role="status">Loading team tasks…</p> : visibleTasks.length ? (
+          <ul className="approval-task-list">
+            {visibleTasks.map((task) => {
+              const submission = submissionsByTask.get(task.id);
+              return <li key={task.id}>
+                <div><strong>{task.title}</strong><small>{teams.find((team) => team.id === task.teamId)?.name || task.team || "Team"} · {memberById.get(task.assignee)?.name || "Assigned member unavailable"}</small></div>
+                <span className="approval-task-progress">{task.status || "To do"}</span>
+                <span className={statusClass(submission?.status || "Not submitted")}>{submission?.status || "Not submitted"}</span>
+              </li>;
+            })}
+          </ul>
+        ) : <p className="management-state">No tasks have been created for this team yet.</p>}
+      </section>
 
       <section className="management-card submission-create-card">
           <div className="management-card-heading">

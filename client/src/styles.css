@@ -3045,6 +3045,86 @@ a {
   font-size: 11px;
 }
 
+.approval-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.approval-stat {
+  display: grid;
+  gap: 5px;
+  padding: 15px 17px;
+}
+
+.approval-stat > span,
+.approval-stat > small {
+  color: #71847a;
+  font-size: 10px;
+}
+
+.approval-stat > strong {
+  color: #304b39;
+  font-size: 24px;
+}
+
+.approval-task-tracking {
+  padding: 18px;
+}
+
+.approval-task-list {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.approval-task-list > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #e6eee8;
+  border-radius: 9px;
+  padding: 10px 12px;
+  background: #fbfcfb;
+}
+
+.approval-task-list > li > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.approval-task-list strong {
+  overflow: hidden;
+  color: #304b39;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.approval-task-list small,
+.approval-task-progress {
+  color: #71847a;
+  font-size: 10px;
+}
+
+@media (max-width: 620px) {
+  .approval-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .approval-task-list > li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .approval-task-progress {
+    grid-column: 2;
+  }
+}
+
 .submission-create-form {
   display: grid;
   grid-template-columns: minmax(140px, .7fr) minmax(190px, 1fr) minmax(230px, 1.2fr) minmax(180px, .8fr) auto;
