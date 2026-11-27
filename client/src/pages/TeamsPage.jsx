@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
 import { requestJson } from "../api.js";
 import { useAuth } from "../auth/AuthContext.jsx";
@@ -566,7 +567,8 @@ function TeamsPage() {
               <div className="team-task-grid">
                 {shownTasks.map((task) => {
                   const assignee = mappedMembers.find((member) => member.id === task.assignee);
-                  const canUpdate = user?.id === task.assignee;
+                  const isTeamMember = team?.leaderId === user?.id || team?.members?.some((member) => member.userId === user?.id);
+                  const canUpdate = user?.id === task.assignee || isTeamMember || canManageTeam || task.createdBy === user?.id;
                   const taskBusy = busyTaskId === task.id;
                   const hasAwardedContribution = contributions.some((contribution) => contribution.taskId === task.id);
                   const overdue = task.status !== "Completed" && task.deadline < todayString();
@@ -587,9 +589,10 @@ function TeamsPage() {
                       </div>
                       <div className="team-task-controls">
                         <label className="team-complete-control">
-                          <input type="checkbox" checked={task.status === "Completed"} disabled={!canUpdate || taskBusy} title={canUpdate ? "" : "Only the assigned member can complete this task"} onChange={(event) => updateTask(task.id, { progress: event.target.checked ? 100 : 99 }, event.target.checked ? "Task completed." : "Task reopened.")} />
+                          <input type="checkbox" checked={task.status === "Completed"} disabled={!canUpdate || taskBusy} title={canUpdate ? "" : "Only a member of this team can update this task"} onChange={(event) => updateTask(task.id, { progress: event.target.checked ? 100 : 99 }, event.target.checked ? "Task completed." : "Task reopened.")} />
                           Complete
                         </label>
+                        {task.status === "Completed" && task.assignee === user?.id && <Link className="team-submit-review-link" to="/approvals">Submit for review</Link>}
                         <label>Progress %
                           <input type="number" min="0" max="100" defaultValue={task.progress} disabled={!canUpdate || taskBusy} aria-label={`${task.title} progress percentage`} onBlur={(event) => {
                             const value = Number(event.target.value);

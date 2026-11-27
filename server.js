@@ -595,16 +595,29 @@ async function updateTask(request, response, user, taskId) {
     return;
   }
 
-  if (task.assignee !== user.id) {
-    throw new HttpError(403, "Only the assigned member can update this task's progress.");
+  const TaskTeam = mongoose.models.Team;
+  const taskTeam = typeof task.teamId === "string" && TaskTeam
+    ? await TaskTeam.findOne({ id: task.teamId, organizationId: user.organizationId }).lean()
+    : null;
+  if (!taskTeam) throw new HttpError(404, "The task's team was not found.");
+  const isWorkspaceManager = ["manager", "admin"].includes(user.role || "member");
+  const isTeamMember = taskTeam.leaderId === user.id || (taskTeam.members || []).some((member) => member.userId === user.id);
+  const canUpdateProgress = task.assignee === user.id || isTeamMember || isWorkspaceManager || task.createdBy === user.id;
+  if (!canUpdateProgress) {
+    throw new HttpError(403, "Only a member of this team can update this task's progress.");
   }
+  const progressFilter = {
+    id: taskId,
+    organizationId: user.organizationId,
+    ...(!isTeamMember && !isWorkspaceManager && task.createdBy !== user.id ? { assignee: user.id } : {}),
+  };
 
   if (progress !== 100) {
     const updates = { updatedAt: new Date().toISOString() };
     updates.progress = progress;
     updates.status = progress === 0 ? "To do" : "In progress";
     const updatedTask = await tasksCollection.findOneAndUpdate(
-      { id: taskId, organizationId: user.organizationId, assignee: user.id },
+      progressFilter,
       { $set: updates },
       { returnDocument: "after" }
     );
@@ -617,76 +630,47 @@ async function updateTask(request, response, user, taskId) {
     return;
   }
 
-  const session = await mongoose.startSession();
-  let updatedTask;
-  let contribution;
-  try {
-    await session.withTransaction(async () => {
-      const currentTask = await tasksCollection.findOne({ id: taskId, organizationId: user.organizationId }, { session });
-      if (!currentTask) throw new HttpError(404, "Task not found.");
-      if (currentTask.assignee !== user.id) {
-        throw new HttpError(403, "Only the assigned member can update this task's progress.");
-      }
+  const points = Number(task.contributionPoints);
+  if (!Number.isSafeInteger(points) || points < 1 || points > 1000) {
+    throw new HttpError(400, "This task does not have a valid contribution point value.");
+  }
+  const completedTask = await tasksCollection.findOneAndUpdate(
+    { ...progressFilter, status: { $ne: "Completed" } },
+    {
+      $set: {
+        progress: 100,
+        status: "Completed",
+        updatedAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+      },
+    },
+    { returnDocument: "after" }
+  );
+  const updatedTask = completedTask || await tasksCollection.findOne(progressFilter);
+  if (!updatedTask) throw new HttpError(404, "Task not found.");
 
-      const points = Number(currentTask.contributionPoints);
-      if (!Number.isSafeInteger(points) || points < 1 || points > 1000) {
-        throw new HttpError(400, "This task does not have a valid contribution point value.");
-      }
-      if (typeof currentTask.teamId !== "string" || !currentTask.teamId) {
-        throw new HttpError(409, "This task is not associated with a team and cannot award contribution points.");
-      }
-
-      const Team = mongoose.models.Team;
-      if (!Team || !(await Team.exists({
-        id: currentTask.teamId,
-        organizationId: user.organizationId,
-      }).session(session))) {
-        throw new HttpError(404, "The task's team was not found.");
-      }
-
-      const priorAward = await Contribution.findOne({ taskId }).session(session).lean();
-      if (currentTask.status === "Completed" && priorAward) {
-        updatedTask = currentTask;
-        contribution = priorAward;
-        return;
-      }
-
-      const completedTask = await tasksCollection.findOneAndUpdate(
-        { id: taskId, organizationId: user.organizationId, assignee: user.id, status: { $ne: "Completed" } },
+  let contribution = await Contribution.findOne({ id: `task-completion-${taskId}` }).lean();
+  if (!contribution) {
+    try {
+      contribution = await Contribution.findOneAndUpdate(
+        { id: `task-completion-${taskId}` },
         {
-          $set: {
-            progress: 100,
-            status: "Completed",
-            updatedAt: new Date().toISOString(),
-            completedAt: new Date().toISOString(),
+          $setOnInsert: {
+            id: `task-completion-${taskId}`,
+            memberId: task.assignee,
+            teamId: task.teamId,
+            points,
+            reason: `Completed task: ${task.title}`,
+            taskId,
+            awardedBy: user.id,
           },
         },
-        { returnDocument: "after", session }
-      );
-
-      if (!completedTask) {
-        const latestTask = await tasksCollection.findOne({ id: taskId, organizationId: user.organizationId }, { session });
-        if (!latestTask) throw new HttpError(404, "Task not found.");
-        if (latestTask.assignee !== user.id) {
-          throw new HttpError(403, "Only the assigned member can update this task's progress.");
-        }
-        updatedTask = latestTask;
-      } else {
-        updatedTask = completedTask;
-      }
-
-      contribution = priorAward || (await Contribution.create([{
-        id: `task-completion-${taskId}`,
-        memberId: user.id,
-        teamId: currentTask.teamId,
-        points,
-        reason: `Completed task: ${currentTask.title}`,
-        taskId,
-        awardedBy: user.id,
-      }], { session }))[0];
-    });
-  } finally {
-    await session.endSession();
+        { upsert: true, new: true, runValidators: true }
+      ).lean();
+    } catch (error) {
+      if (error.code !== 11000) throw error;
+      contribution = await Contribution.findOne({ id: `task-completion-${taskId}` }).lean();
+    }
   }
 
   sendJson(response, 200, {

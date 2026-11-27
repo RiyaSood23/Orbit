@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
 const Submission = require("../models/Submission");
+const Team = require("../models/Team");
 const { DEFAULT_ORGANIZATION_ID } = require("../organization");
 
 const reviewStatuses = ["Under review", "Revision requested", "Approved", "Rejected"];
@@ -179,8 +180,15 @@ function mapUploadError(error) {
 
 async function createSubmission(request, response, user, db, readJsonBody, taskId, organizationId) {
   const task = await findTask(db, taskId, organizationId);
-  if (task.assignee !== user.id) {
-    throw new SubmissionRouteError(403, "Only the assigned member can submit this task.");
+  const team = task.teamId
+    ? await Team.findOne({ id: task.teamId, organizationId }).select("leaderId members").lean()
+    : null;
+  const isWorkspaceManager = ["admin", "manager"].includes(user.role || "member");
+  const isTeamMember = Boolean(team && (
+    team.leaderId === user.id || (team.members || []).some((member) => member.userId === user.id)
+  ));
+  if (task.assignee !== user.id && task.createdBy !== user.id && !isTeamMember && !isWorkspaceManager) {
+    throw new SubmissionRouteError(403, "Only a member of this team can submit its completed work.");
   }
   if (task.status !== "Completed") {
     throw new SubmissionRouteError(409, "Complete the task before submitting it for review.");
@@ -188,13 +196,12 @@ async function createSubmission(request, response, user, db, readJsonBody, taskI
 
   const body = await readJsonBody(request);
   const description = requiredText(body.description, "Submission description", 5000);
-  const latestSubmission = await Submission.findOne({
-    organizationId,
-    taskId,
-    submittedBy: user.id,
-  }).sort({ createdAt: -1 }).lean();
-  if (latestSubmission && latestSubmission.status !== "Revision requested") {
-    throw new SubmissionRouteError(409, "This task already has a submission that cannot be resubmitted.");
+  const latestSubmission = await Submission.findOne({ organizationId, taskId })
+    .sort({ createdAt: -1 }).lean();
+  if (latestSubmission && (
+    latestSubmission.status !== "Revision requested" || latestSubmission.submittedBy !== user.id
+  )) {
+    throw new SubmissionRouteError(409, "This task already has an active or final submission.");
   }
 
   let submission;

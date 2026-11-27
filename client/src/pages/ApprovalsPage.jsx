@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { requestJson } from "../api.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 
@@ -208,6 +209,11 @@ function ApprovalsPage() {
   const taskById = useMemo(() => new Map(teamTasks.map((task) => [task.id, task])), [teamTasks]);
   const selectedTeam = teams.find((team) => team.id === selectedTeamId);
   const submissionTeam = teams.find((team) => team.id === submissionTeamId);
+  const canSubmitForTeam = Boolean(submissionTeam && (
+    ["admin", "manager"].includes(user?.role || "member")
+    || submissionTeam.leaderId === user?.id
+    || (submissionTeam.members || []).some((member) => member.userId === user?.id)
+  ));
   const canReview = Boolean(selectedSubmission && selectedSubmission.submittedBy !== user?.id);
   const isSubmitter = Boolean(selectedSubmission && selectedSubmission.submittedBy === user?.id);
   const selectedTask = selectedSubmission
@@ -217,16 +223,18 @@ function ApprovalsPage() {
     () => selectedSubmission ? activityFor(selectedSubmission) : [],
     [selectedSubmission]
   );
-  const existingByTask = new Map();
+  const latestSubmissionByTask = new Map();
   for (const submission of allSubmissions) {
-    if (submission.submittedBy === user?.id && !existingByTask.has(submission.taskId)) {
-      existingByTask.set(submission.taskId, submission);
+    const previous = latestSubmissionByTask.get(submission.taskId);
+    if (!previous || new Date(submission.createdAt) > new Date(previous.createdAt)) {
+      latestSubmissionByTask.set(submission.taskId, submission);
     }
   }
   const readyTasks = teamTasks.filter((task) => {
-    if (task.teamId !== submissionTeamId || task.assignee !== user?.id || task.status !== "Completed") return false;
-    const existing = existingByTask.get(task.id);
-    return !existing || existing.status === "Revision requested";
+    if (task.teamId !== submissionTeamId || task.status !== "Completed") return false;
+    if (task.assignee !== user?.id && task.createdBy !== user?.id && !canSubmitForTeam) return false;
+    const existing = latestSubmissionByTask.get(task.id);
+    return !existing || (existing.status === "Revision requested" && existing.submittedBy === user?.id);
   });
   const visibleSubmissions = submissions.filter((submission) => (
     !selectedTeamId
@@ -509,7 +517,7 @@ function ApprovalsPage() {
 
       <section className="management-card submission-create-card">
           <div className="management-card-heading">
-            <div><h2>Submit work for review</h2><p>{submissionTeam ? `${submissionTeam.name}: ` : ""}select one of your completed tasks to send for review.</p></div>
+            <div><h2>Submit work for review</h2><p>{submissionTeam ? `${submissionTeam.name}: ` : ""}select a completed team task to send for review.</p></div>
           </div>
           {teamsLoading ? <p className="management-state" role="status">Loading team tasks…</p> : teams.length ? (
             <form className="submission-create-form" onSubmit={submitWork}>
@@ -541,11 +549,14 @@ function ApprovalsPage() {
                 {selectedFiles.length > 0 && <p className="management-field-hint">{selectedFiles.length} file(s) selected.</p>}
                 <button type="submit" className="management-primary-button" disabled={submitting}>{submitting ? "Submitting…" : "Send task for review"}</button>
               </> : (
-                <p className="management-state">
-                  {teamTasksError
-                    ? "Task options are unavailable until the team tasks load."
-                    : "No completed tasks assigned to you are ready to submit in this team. Complete one of your tasks from the Team page first; it will appear here."}
-                </p>
+                <div className="approval-no-ready-tasks">
+                  <p className="management-state">
+                    {teamTasksError
+                      ? "Task options are unavailable until the team tasks load."
+                      : "No completed tasks are ready to submit in this team. Mark a team task complete first; tasks with an active or final submission are already being tracked below."}
+                  </p>
+                  {!teamTasksError && <Link className="approval-form-team-link" to={`/team?team=${encodeURIComponent(submissionTeamId)}`}>Open this team’s tasks</Link>}
+                </div>
               )}
             </form>
           ) : <p className="management-state">No teams are available for this organization.</p>}
@@ -585,7 +596,12 @@ function ApprovalsPage() {
 
         <section className="management-card approval-detail" aria-labelledby="submission-detail-title">
           {detailLoading ? <p className="management-state" role="status">Loading submission…</p> : !selectedSubmission ? (
-            <div className="approval-detail-empty"><h2 id="submission-detail-title">Select a submission</h2><p>Choose an item from the list to view its details and activity.</p></div>
+            <div className="approval-detail-empty">
+              <h2 id="submission-detail-title">{visibleSubmissions.length ? "Select a submission" : "No submissions yet"}</h2>
+              <p>{visibleSubmissions.length
+                ? "Choose an item from the list to view its details and activity."
+                : "Completed work will appear here after someone sends it for review using the form above."}</p>
+            </div>
           ) : (
             <>
               <div className="approval-detail-header">

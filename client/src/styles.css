@@ -2375,6 +2375,21 @@ a {
   min-height: 30px;
 }
 
+.team-submit-review-link {
+  align-self: center;
+  border-radius: 6px;
+  padding: 7px 9px;
+  color: #376a4e;
+  background: #edf6ef;
+  font-size: 9px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.team-submit-review-link:hover {
+  background: #dceee3;
+}
+
 .team-task-controls input[type="checkbox"] {
   accent-color: #5d9a7a;
 }
@@ -3029,6 +3044,20 @@ a {
   padding: 18px;
 }
 
+.approval-no-ready-tasks {
+  grid-column: 1 / -1;
+}
+
+.approval-form-team-link {
+  display: inline-block;
+  margin: 0 10px 6px;
+  color: #376a4e;
+  font-size: 11px;
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .approval-team-filter {
   display: flex;
   align-items: flex-end;
@@ -3127,9 +3156,16 @@ a {
 
 .submission-create-form {
   display: grid;
-  grid-template-columns: minmax(140px, .7fr) minmax(190px, 1fr) minmax(230px, 1.2fr) minmax(180px, .8fr) auto;
-  align-items: end;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 11px;
+}
+
+.submission-create-form > label:nth-of-type(n + 3),
+.submission-create-form > button,
+.submission-create-form > .management-state,
+.submission-create-form > .management-field-hint {
+  grid-column: 1 / -1;
 }
 
 .submission-create-form label {
